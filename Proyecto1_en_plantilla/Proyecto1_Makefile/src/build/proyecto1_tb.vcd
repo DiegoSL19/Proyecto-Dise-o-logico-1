@@ -1,0 +1,231 @@
+$date
+	Tue Sep 22 02:11:21 2026
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1ps
+$end
+$scope module TB_top_display $end
+$var wire 1 ! p0_pi $end
+$var wire 1 " p1_pi $end
+$var wire 1 # p2_pi $end
+$var wire 1 $ p4_pi $end
+$var wire 8 % tx_po [7:0] $end
+$var wire 4 & paridad_led_po [3:0] $end
+$var wire 7 ' catodo_rx_po [6:0] $end
+$var wire 7 ( catodo_po [6:0] $end
+$var reg 4 ) datos_pi [3:0] $end
+$var reg 3 * error1_pi [2:0] $end
+$var reg 3 + error2_pi [2:0] $end
+$var reg 1 , modo_rx_pi $end
+$var integer 32 - errores [31:0] $end
+$scope module dut $end
+$var wire 8 . codigo_rx [7:0] $end
+$var wire 4 / datos_pi [3:0] $end
+$var wire 3 0 error1_pi [2:0] $end
+$var wire 3 1 error2_pi [2:0] $end
+$var wire 1 , modo_rx_pi $end
+$var wire 1 ! p0_pi $end
+$var wire 1 " p1_pi $end
+$var wire 1 # p2_pi $end
+$var wire 1 $ p4_pi $end
+$var wire 8 2 tx_po [7:0] $end
+$var wire 8 3 tx_interno [7:0] $end
+$var wire 3 4 sindrome_rx [2:0] $end
+$var wire 4 5 paridad_led_po [3:0] $end
+$var wire 1 6 paridad_error_rx $end
+$var wire 1 7 error_simple_rx $end
+$var wire 1 8 error_doble_rx $end
+$var wire 4 9 datos_corregidos_rx [3:0] $end
+$var wire 4 : dato_display_rx [3:0] $end
+$var wire 8 ; codigo_corregido_rx [7:0] $end
+$var wire 8 < codigo_correcto [7:0] $end
+$var wire 7 = catodo_rx_po [6:0] $end
+$var wire 7 > catodo_po [6:0] $end
+$var parameter 1 ? MODO_TX $end
+$scope module u_display $end
+$var wire 4 @ datos_pi [3:0] $end
+$var wire 1 A x3 $end
+$var wire 1 B x2 $end
+$var wire 1 C x1 $end
+$var wire 1 D x0 $end
+$var wire 7 E catodo_po [6:0] $end
+$upscope $end
+$scope module u_display_rx $end
+$var wire 4 F datos_pi [3:0] $end
+$var wire 1 G x3 $end
+$var wire 1 H x2 $end
+$var wire 1 I x1 $end
+$var wire 1 J x0 $end
+$var wire 7 K catodo_po [6:0] $end
+$upscope $end
+$scope module u_error $end
+$var wire 8 L codigo_pi [7:0] $end
+$var wire 8 M codigo_po [7:0] $end
+$var wire 3 N error1_pi [2:0] $end
+$var wire 3 O error2_pi [2:0] $end
+$var wire 8 P mascara2 [7:0] $end
+$var wire 8 Q mascara1 [7:0] $end
+$upscope $end
+$scope module u_receptor $end
+$var wire 8 R codigo_corregido_po [7:0] $end
+$var wire 8 S codigo_rx_pi [7:0] $end
+$var wire 1 8 error_doble_po $end
+$var wire 1 7 error_simple_po $end
+$var wire 1 6 paridad_error_po $end
+$var wire 1 T s1 $end
+$var wire 1 U s2 $end
+$var wire 1 V s4 $end
+$var wire 3 W sindrome_po [2:0] $end
+$var wire 8 X mascara_hamming [7:0] $end
+$var wire 8 Y mascara_correccion [7:0] $end
+$var wire 4 Z datos_corregidos_po [3:0] $end
+$upscope $end
+$upscope $end
+$scope task comprobar $end
+$var reg 1 [ condicion $end
+$var reg 640 \ mensaje [639:0] $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+$comment Show the parameter values. $end
+$dumpall
+1?
+$end
+#0
+$dumpvars
+bx \
+x[
+b1010 Z
+b0 Y
+b0 X
+b0 W
+0V
+0U
+0T
+b11010010 S
+b11010010 R
+b0 Q
+b0 P
+b0 O
+b0 N
+b11010010 M
+b11010010 L
+b10 K
+0J
+1I
+0H
+1G
+b1010 F
+b10 E
+0D
+1C
+0B
+1A
+b1010 @
+b10 >
+b10 =
+b11010010 <
+b11010010 ;
+b1010 :
+b1010 9
+08
+07
+06
+b1111 5
+b0 4
+b11010010 3
+b11010010 2
+b0 1
+b0 0
+b1010 /
+b11010010 .
+b0 -
+0,
+b0 +
+b0 *
+b1010 )
+b10 (
+b10 '
+b1111 &
+b11010010 %
+0$
+1#
+0"
+1!
+$end
+#5000
+b100 Y
+b10 '
+b10 =
+b10 K
+b100 X
+17
+16
+b1100 &
+b1100 5
+08
+0J
+1T
+b11 4
+b11 W
+1U
+b1010 :
+b1010 F
+b1010 9
+b1010 Z
+b11010010 ;
+b11010010 R
+b11010110 .
+b11010110 S
+b11010110 %
+b11010110 2
+b11010110 3
+b11010110 M
+b100 Q
+b11 *
+b11 0
+b11 N
+b10001000100010101000100001000000110000101110000011000010110011101100001011001000110111100100000011100110110100101101110001000000110010001101111011000100110110001100101001000000110010101110010011100100110111101110010 \
+1[
+#10000
+b100001 '
+b100001 =
+b100001 K
+0G
+1J
+b11 :
+b11 F
+1,
+b1000100010001010100010000100000011100000110010101110010011011010110000101101110011001010110001101100101001000000110000101110000011000010110011101100001011001000110111100100000011000110110111101101110001000000111010101101110001000000110010101110010011100100110111101110010 \
+#15000
+b100 &
+b100 5
+18
+b0 Y
+07
+06
+b1010 9
+b1010 Z
+b11010001 ;
+b11010001 R
+b11010001 .
+b11010001 S
+b11010001 %
+b11010001 2
+b11010001 3
+b11010001 M
+b10 P
+b1 Q
+b10 +
+b10 1
+b10 O
+b1 *
+b1 0
+b1 N
+b110010001101001011100110111000001101100011000010111100100100000010100100101100000100000011011010111010101100101011100110111010001110010011000010010000001110011011010010110111001100100011100100110111101101101011001010010000000110011 \
+#20000
+b11100110110100101101110011001000111001001101111011011010110010100100000011100100110010101110011011101010110110001110100011000010110111001110100011001010010000000110011001000000111000001100001011100100110000100100000011001010111001001110010011011110111001001100101011100110010000001100101011011100010000001110000011011110111001101101001011000110110100101101111011011100110010101110011001000000011000100100000011110010010000000110010 \
+#25000

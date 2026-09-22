@@ -1,0 +1,67 @@
+$date
+	Tue Sep 22 02:31:34 2026
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1ps
+$end
+$scope module TB_RX_04_doble_error $end
+$var wire 3 ! sindrome_po [2:0] $end
+$var wire 1 " paridad_error_po $end
+$var wire 1 # error_simple_po $end
+$var wire 1 $ error_doble_po $end
+$var wire 4 % datos_corregidos_po [3:0] $end
+$var wire 8 & codigo_corregido_po [7:0] $end
+$var reg 8 ' codigo_rx_pi [7:0] $end
+$var integer 32 ( errores [31:0] $end
+$scope module dut $end
+$var wire 8 ) codigo_corregido_po [7:0] $end
+$var wire 8 * codigo_rx_pi [7:0] $end
+$var wire 1 $ error_doble_po $end
+$var wire 1 # error_simple_po $end
+$var wire 1 " paridad_error_po $end
+$var wire 1 + s1 $end
+$var wire 1 , s2 $end
+$var wire 1 - s4 $end
+$var wire 3 . sindrome_po [2:0] $end
+$var wire 8 / mascara_hamming [7:0] $end
+$var wire 8 0 mascara_correccion [7:0] $end
+$var wire 4 1 datos_corregidos_po [3:0] $end
+$upscope $end
+$scope task comprobar $end
+$var reg 1 2 condicion $end
+$var reg 800 3 mensaje [799:0] $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+$comment Show the parameter values. $end
+$dumpall
+$end
+#0
+$dumpvars
+bx 3
+x2
+b1001 1
+b0 0
+b100000 /
+b110 .
+1-
+1,
+0+
+b11000110 *
+b11000110 )
+b0 (
+b11000110 '
+b11000110 &
+b1001 %
+1$
+0#
+0"
+b110 !
+$end
+#5000
+b100110001101111011100110010000001100100011000010111010001101111011100110010000001110001011101010110010101100100011000010110111000100000011000010110110001110100011001010111001001100001011001000110111101110011001000000111000001101111011100100111000101110101011001010010000001000100010001010100010000100000011100110110111101101100011011110010000001100100011001010111010001100101011000110111010001100001001011000010000001101110011011110010000001100011011011110111001001110010011010010110011101100101 3
+12
+#10000

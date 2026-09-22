@@ -1,0 +1,194 @@
+Info: Series:GW1N-9C Device:GW1NR-9C Package:QFN88P Speed:C6/I5
+Warning: Invalid constraint:   
+
+Info: Packing constants..
+Info: Packing Shadow RAM..
+Info: Packing GSR..
+Info: Packing IOs..
+Info: Packing diff IOs..
+Info: Packing IO logic..
+Info: Packing wide LUTs..
+Info: Packing LUT5s..
+Info: Packing LUT6s..
+Info: Packing LUT7s..
+Info: Packing LUT8s..
+Info: Packing ALUs..
+Info: Packing LUT-FFs..
+Info: Packing non-LUT FFs..
+Info: Packing PLLs..
+Info: Checksum: 0xdacfbad4
+
+Info: Annotating ports with timing budgets for target frequency 27.00 MHz
+Info: Checksum: 0xdacfbad4
+
+Info: Device utilisation:
+Info: 	                 VCC:     1/    1   100%
+Info: 	               SLICE:   163/ 8640     1%
+Info: 	                 IOB:    41/  274    14%
+Info: 	                ODDR:     0/  274     0%
+Info: 	           MUX2_LUT5:    71/ 4320     1%
+Info: 	           MUX2_LUT6:    35/ 2160     1%
+Info: 	           MUX2_LUT7:    15/ 1080     1%
+Info: 	           MUX2_LUT8:     5/ 1056     0%
+Info: 	                 GND:     1/    1   100%
+Info: 	                RAMW:     0/  270     0%
+Info: 	                 GSR:     1/    1   100%
+Info: 	                 OSC:     0/    1     0%
+Info: 	                rPLL:     0/    2     0%
+
+Info: Placed 41 cells based on constraints.
+Info: Creating initial analytic placement for 39 cells, random placement wirelen = 2413.
+Info:     at initial placer iter 0, wirelen = 1046
+Info:     at initial placer iter 1, wirelen = 925
+Info:     at initial placer iter 2, wirelen = 896
+Info:     at initial placer iter 3, wirelen = 895
+Info: Running main analytical placer, max placement attempts per cell = 13861.
+Info:     at iteration #1, type SLICE: wirelen solved = 895, spread = 923, legal = 923; time = 0.00s
+Info:     at iteration #1, type VCC: wirelen solved = 923, spread = 923, legal = 923; time = 0.00s
+Info:     at iteration #1, type MUX2_LUT5: wirelen solved = 920, spread = 920, legal = 920; time = 0.00s
+Info:     at iteration #1, type MUX2_LUT6: wirelen solved = 920, spread = 938, legal = 938; time = 0.00s
+Info:     at iteration #1, type MUX2_LUT7: wirelen solved = 932, spread = 941, legal = 941; time = 0.00s
+Info:     at iteration #1, type MUX2_LUT8: wirelen solved = 938, spread = 949, legal = 953; time = 0.00s
+Info:     at iteration #1, type GSR: wirelen solved = 953, spread = 953, legal = 953; time = 0.00s
+Info:     at iteration #1, type ALL: wirelen solved = 900, spread = 952, legal = 949; time = 0.00s
+Info: HeAP Placer Time: 0.02s
+Info:   of which solving equations: 0.01s
+Info:   of which spreading cells: 0.00s
+Info:   of which strict legalisation: 0.00s
+
+Info: Running simulated annealing placer for refinement.
+Info:   at iteration #1: temp = 0.000000, timing cost = 0, wirelen = 949
+Info:   at iteration #4: temp = 0.000000, timing cost = 0, wirelen = 914 
+Info: SA placement time 0.02s
+
+Info: Max delay <async> -> <async>: 37.86 ns
+
+Info: Slack histogram:
+Info:  legend: * represents 1 endpoint(s)
+Info:          + represents [1,1) endpoint(s)
+Info: [  -823,    991) |*****+
+Info: [   991,   2805) |******************+
+Info: [  2805,   4619) |**+
+Info: [  4619,   6433) |+
+Info: [  6433,   8247) |***+
+Info: [  8247,  10061) |****+
+Info: [ 10061,  11875) |+
+Info: [ 11875,  13689) |****+
+Info: [ 13689,  15503) |*+
+Info: [ 15503,  17317) |******************+
+Info: [ 17317,  19131) |****************************************+
+Info: [ 19131,  20945) |*************************+
+Info: [ 20945,  22759) |*********************+
+Info: [ 22759,  24573) |**********+
+Info: [ 24573,  26387) |*************************************************+
+Info: [ 26387,  28201) |*************************************************+
+Info: [ 28201,  30015) |************************************************************ 
+Info: [ 30015,  31829) |*************+
+Info: [ 31829,  33643) |+
+Info: [ 33643,  35457) |+
+Info: Checksum: 0x88c000e9
+Info: Find global nets...
+Info: Routing globals...
+
+Info: Routing..
+Info: Setting up routing queue.
+Info: Routing 839 arcs.
+Info:            |   (re-)routed arcs  |   delta    | remaining|       time spent     |
+Info:    IterCnt |  w/ripup   wo/ripup |  w/r  wo/r |      arcs| batch(sec) total(sec)|
+Info:       1000 |       90        909 |   90   909 |        11|       0.27       0.27|
+Info:       1010 |       90        920 |    0    11 |         0|       0.00       0.27|
+Info: Routing complete.
+Info: Router1 time 0.27s
+Info: Checksum: 0x787e0ca1
+
+Info: Critical path report for cross-domain path '<async>' -> '<async>':
+Info: curr total
+Info:  0.0  0.0  Source u_error.error2_pi_IBUF_O$iob.O
+Info:  8.0  8.0    Net u_error.error2_pi[2] budget 37.037037 ns (46,12) -> (28,25)
+Info:                Sink u_display.x0_MUX2_LUT5_S0_2_I1_LUT4_F_LC.A
+Info:                Defined in:
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:130.20-130.21
+Info:  1.0  9.0  Source u_display.x0_MUX2_LUT5_S0_2_I1_LUT4_F_LC.F
+Info:  0.3  9.3    Net u_display.x0_MUX2_LUT5_S0_2_I1 budget 8.852009 ns (28,25) -> (28,25)
+Info:                Sink u_display.x0_MUX2_LUT5_S0_2_LC.I1
+Info:                Defined in:
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:159.41-159.66
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:151.13-151.15
+Info:  0.2  9.5  Source u_display.x0_MUX2_LUT5_S0_2_LC.OF
+Info:  0.3  9.9    Net u_display.x0_MUX2_LUT5_S0_2_O budget 8.852009 ns (28,25) -> (28,25)
+Info:                Sink u_error.codigo_pi_MUX2_LUT6_S0_5_LC.I1
+Info:                Defined in:
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:157.13-157.15
+Info:  0.4 10.2  Source u_error.codigo_pi_MUX2_LUT6_S0_5_LC.OF
+Info:  4.3 14.5    Net modo_rx_pi_IBUF_I_O[3] budget 8.852009 ns (28,25) -> (33,16)
+Info:                Sink modo_rx_pi_IBUF_I_O_LUT4_I3_1_LC.A
+Info:                Defined in:
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:130.20-130.21
+Info:  1.0 15.5  Source modo_rx_pi_IBUF_I_O_LUT4_I3_1_LC.F
+Info:  0.3 15.9    Net modo_rx_pi_IBUF_I_O_LUT4_I3_1_F budget 3.200904 ns (33,16) -> (33,16)
+Info:                Sink modo_rx_pi_IBUF_I_O_LUT4_I3_1_F_MUX2_LUT5_I1_LC.I1
+Info:                Defined in:
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:170.42-170.67
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:165.42-165.67
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:158.41-158.66
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:151.13-151.15
+Info:  0.2 16.0  Source modo_rx_pi_IBUF_I_O_LUT4_I3_1_F_MUX2_LUT5_I1_LC.OF
+Info:  0.3 16.4    Net modo_rx_pi_IBUF_I_O_LUT4_I3_1_F_MUX2_LUT5_I1_O budget 3.200904 ns (33,16) -> (33,16)
+Info:                Sink modo_rx_pi_IBUF_I_O_LUT4_I3_F_MUX2_LUT5_I1_O_MUX2_LUT6_I1_LC.I0
+Info:                Defined in:
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:170.42-170.67
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:165.42-165.67
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:157.9-157.11
+Info:  0.4 16.7  Source modo_rx_pi_IBUF_I_O_LUT4_I3_F_MUX2_LUT5_I1_O_MUX2_LUT6_I1_LC.OF
+Info:  0.3 17.1    Net modo_rx_pi_IBUF_I_O_MUX2_LUT8_S0_2_I0_MUX2_LUT7_O_I1 budget 3.200904 ns (33,16) -> (33,16)
+Info:                Sink modo_rx_pi_IBUF_I_O_MUX2_LUT8_S0_2_I0_MUX2_LUT7_O_LC.I1
+Info:                Defined in:
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:170.42-170.67
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:163.13-163.15
+Info:  0.5 17.6  Source modo_rx_pi_IBUF_I_O_MUX2_LUT8_S0_2_I0_MUX2_LUT7_O_LC.OF
+Info:  0.4 18.0    Net modo_rx_pi_IBUF_I_O_MUX2_LUT8_S0_2_I0 budget 3.200904 ns (33,16) -> (32,16)
+Info:                Sink modo_rx_pi_IBUF_I_O_MUX2_LUT8_S0_2_LC.I0
+Info:                Defined in:
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:169.9-169.11
+Info:  0.7 18.7  Source modo_rx_pi_IBUF_I_O_MUX2_LUT8_S0_2_LC.OF
+Info:  5.9 24.6    Net modo_rx_pi_IBUF_I_O_MUX2_LUT8_S0_O[2] budget 3.200904 ns (32,16) -> (39,1)
+Info:                Sink u_display_rx.catodo_po_LUT4_F_1_LC.B
+Info:                Defined in:
+Info:                  c:\Users\diego\DOWNLO~1\OSS-CA~1\bin\../share/yosys/gowin/cells_map.v:130.20-130.21
+Info:  1.1 25.7  Source u_display_rx.catodo_po_LUT4_F_1_LC.F
+Info:  1.3 27.0    Net u_display_rx.catodo_po[3] budget 2.810094 ns (39,1) -> (41,0)
+Info:                Sink catodo_rx_po_OBUF_O_3$iob.I
+Info:                Defined in:
+Info:                  ../design/top_display.sv:153.19-156.6
+Info:                  ../design/seven_segment.sv:3.18-3.27
+Info: 5.5 ns logic, 21.5 ns routing
+
+Info: Max delay <async> -> <async>: 27.00 ns
+
+Info: Slack histogram:
+Info:  legend: * represents 1 endpoint(s)
+Info:          + represents [1,1) endpoint(s)
+Info: [ 10037,  11327) |***+
+Info: [ 11327,  12617) |****+
+Info: [ 12617,  13907) |*************+
+Info: [ 13907,  15197) |*+
+Info: [ 15197,  16487) |+
+Info: [ 16487,  17777) |***+
+Info: [ 17777,  19067) |***+
+Info: [ 19067,  20357) |**+
+Info: [ 20357,  21647) |*+
+Info: [ 21647,  22937) |***+
+Info: [ 22937,  24227) |*******************+
+Info: [ 24227,  25517) |************************************ 
+Info: [ 25517,  26807) |********************************+
+Info: [ 26807,  28097) |*****+
+Info: [ 28097,  29387) |********+
+Info: [ 29387,  30677) |****************************************************+
+Info: [ 30677,  31967) |************************************************************ 
+Info: [ 31967,  33257) |*************************************+
+Info: [ 33257,  34547) |+
+Info: [ 34547,  35837) |+
+
+1 warning, 0 errors
+
+Info: Program finished normally.
