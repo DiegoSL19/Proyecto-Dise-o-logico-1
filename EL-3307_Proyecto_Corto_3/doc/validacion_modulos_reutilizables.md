@@ -2,7 +2,7 @@
 
 ## Alcance
 
-Se registran los resultados de simulaciones RTL ejecutadas con Icarus Verilog para cuatro módulos del Proyecto Corto 2, considerados como candidatos a reutilización en el Proyecto Corto 3. Las pruebas se realizaron con los testbenches unitarios indicados en cada sección.
+Se registran los resultados de simulaciones RTL individuales ejecutadas con Icarus Verilog para seis módulos del Proyecto Corto 2, considerados como candidatos a reutilización en el Proyecto Corto 3. Las pruebas se realizaron con los testbenches unitarios indicados en cada sección.
 
 Estos resultados corresponden a los módulos originales del Proyecto Corto 2. Verifican los casos descritos a continuación de forma aislada y **no demuestran todavía el funcionamiento integrado de estos módulos en el Proyecto Corto 3**.
 
@@ -14,6 +14,9 @@ Estos resultados corresponden a los módulos originales del Proyecto Corto 2. Ve
 | `debouncer.sv` | 72 | 0 | PASS |
 | `tick_generator.sv` | 42 | 0 | PASS |
 | `subtractor.sv` | 17 | 0 | PASS |
+| `bcd_converter.sv` | 12 | 0 | PASS |
+| `disp_hex_mux.sv` | 143 | 0 | PASS |
+| **Total** | **304** | **0** | **6 módulos PASS** |
 
 ## `synchronizer.sv`
 
@@ -52,10 +55,29 @@ Estos resultados corresponden a los módulos originales del Proyecto Corto 2. Ve
 - **Resultado:** 17 pruebas, 0 errores; **PASS**.
 - **Limitaciones de reutilización:** la prueba ejercitó valores de hasta 999, pero no todas las combinaciones posibles del rango de 10 bits ni los límites superiores. Al reutilizarlo en el Proyecto Corto 3, se debe confirmar que los operandos y resultados caben en 10 bits, conectar A y B con el orden que corresponda a la operación deseada e interpretar `magnitude` junto con `negative` (la magnitud no tiene signo por sí sola). La FSM también debe coordinar `calculate` y `result_valid` con el registro del resultado. Esta prueba unitaria no valida esa adaptación ni la integración del módulo en el Proyecto Corto 3.
 
+## `bcd_converter.sv`
+
+- **Función:** convertir un número binario de 10 bits (`input_bin`) a tres dígitos BCD empaquetados en `output_bcd[11:0]`, mediante una ROM.
+- **Dependencias:** `rom_reg.sv` y el archivo de tabla `EL-3307_Proyecto_Corto_2/src/design/bcdtable.txt`. La ROM se configura en el módulo con la ruta relativa `../design/bcdtable.txt`, que depende del directorio de trabajo de simulación.
+- **Testbench:** `EL-3307_Proyecto_Corto_2/src/sim/tb_bcd_converter.sv` (`tb_bcd_converter`); es una comprobación combinacional de los valores de entrada contra el BCD esperado.
+- **Condiciones comprobadas:** 12 valores dirigidos entre 0 y 1000, incluidos límites de dígito y ejemplos como 45, 123, 377, 500 y 999. Con la tabla actual, la entrada 1000 produce `12'h000` (BCD 000), no una representación de cuatro dígitos.
+- **Resultado:** 12 pruebas, 0 errores; **PASS**.
+- **Limitaciones de reutilización:** el resultado depende de que `rom_reg.sv` y `bcdtable.txt` estén disponibles y se resuelva correctamente la ruta relativa. La tabla entrega solo tres dígitos BCD y mapea 1000 a 000, por lo que no representa ese valor de forma decimal completa. La prueba cubre 12 entradas, no todas las entradas posibles de 10 bits, y no verifica integración en el Proyecto Corto 3.
+
+## `disp_hex_mux.sv`
+
+- **Función:** multiplexar cuatro dígitos hexadecimales para controlar cuatro displays de siete segmentos usando un contador síncrono como selector.
+- **Entradas:** `clk`, `reset` (sincrónico y activo en alto), `hex3[3:0]`, `hex2[3:0]`, `hex1[3:0]`, `hex0[3:0]` y `dp_in[3:0]`. El parámetro `N` determina el ancho del contador y debe ser al menos 2.
+- **Salidas:** `an[3:0]` habilita un display por vez con selección activa en bajo; `sseg[7:0]` contiene `dp` en el bit 7 y los segmentos `a` a `g` en los bits 6 a 0. Los patrones de segmentos son activos en bajo. Cada bit de `dp_in` controla directamente el punto decimal del dígito correspondiente; en esta interfaz, 0 lo enciende y 1 lo apaga.
+- **Testbench:** `EL-3307_Proyecto_Corto_2/src/sim/tb_disp_hex_mux.sv` (`tb_disp_hex_mux`), con reloj de aproximadamente 27 MHz y `N=4` para reducir el periodo de multiplexación durante la simulación.
+- **Condiciones comprobadas:** selección cíclica de `hex0`, `hex1`, `hex2` y `hex3` y retorno al primero; patrones activos en bajo para los valores hexadecimales 0–F; seguimiento de los cuatro puntos decimales; actualización de datos de entrada; reset sincrónico, incluida la selección de `hex0` al reiniciarse; y continuidad de la secuencia después del reset.
+- **Resultado:** 143 pruebas, 0 errores; **PASS**.
+- **Limitaciones de reutilización:** el testbench acelera el barrido con `N=4`; no mide la frecuencia de refresco requerida en la placa ni valida polaridades o conexiones físicas de displays. El enunciado del Proyecto Corto 3 contiene una contradicción: requiere mostrar el vuelto en cuatro displays y a la vez indica «No conecte este bloque». Por ello, este bloque debe permanecer desconectado en el Proyecto Corto 3 hasta que se aclare ese requisito. Esta simulación unitaria no demuestra integración en dicho proyecto.
+
 ## Referencia teórica
 
 Harris y Harris, *Digital Design and Computer Architecture, ARM Edition*, secciones 3.5 y 4.9. Se citan como referencia teórica sobre diseño digital secuencial y descripción/verificación mediante HDL; no sustituyen los resultados experimentales indicados en este documento.
 
 ## Límites de los resultados
 
-Los resultados reportados son exclusivamente de simulación RTL de los cuatro módulos originales y sus testbenches unitarios. No se reportan resultados de síntesis, pruebas físicas en la Tang Nano 9K ni simulaciones post-síntesis o post-ruteo. La compatibilidad y el comportamiento integrado de estos módulos en el Proyecto Corto 3 quedan pendientes de verificación.
+Los resultados reportados corresponden exclusivamente a simulaciones RTL individuales de los seis módulos originales y sus testbenches del Proyecto Corto 2. No constituyen validaciones de integración y no se reportan resultados de síntesis, pruebas físicas en la Tang Nano 9K ni simulaciones post-ruteo. La compatibilidad y el comportamiento integrado de estos módulos en el Proyecto Corto 3 quedan pendientes de verificación.
