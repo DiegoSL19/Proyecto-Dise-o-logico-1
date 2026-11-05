@@ -28,6 +28,8 @@ module tb_vending_system;
     logic load_price;
     logic load_credit;
     logic calculate_balance;
+    logic [9:0] change_reg;
+    logic load_change;
     logic decrement_A;
     logic decrement_B;
     logic decrement_C;
@@ -76,6 +78,8 @@ module tb_vending_system;
         .load_price(load_price),
         .load_credit(load_credit),
         .calculate_balance(calculate_balance),
+        .change_reg(change_reg),
+        .load_change(load_change),
         .decrement_A(decrement_A),
         .decrement_B(decrement_B),
         .decrement_C(decrement_C),
@@ -181,6 +185,25 @@ module tb_vending_system;
                 $display(
                     "FAIL: %s: credit_captured=%0d expected=%0d",
                     label, credit_captured, expected
+                );
+            end else begin
+                $display("PASS: %s", label);
+            end
+        end
+    endtask
+
+    task automatic check_change(
+        input string label,
+        input logic [9:0] expected
+    );
+        begin
+            #1;
+            tests_run = tests_run + 1;
+            if (change_reg !== expected) begin
+                errors = errors + 1;
+                $display(
+                    "FAIL: %s: change_reg=%0d expected=%0d",
+                    label, change_reg, expected
                 );
             end else begin
                 $display("PASS: %s", label);
@@ -371,6 +394,14 @@ module tb_vending_system;
             check_arithmetic("result and authorization are available after E1",
                              selection, 1'b1, expected_price, credit,
                              expected_change, 1'b0, 1'b1, 1'b1, 1'b1);
+            tests_run = tests_run + 1;
+            if (load_change !== 1'b1) begin
+                errors = errors + 1;
+                $display("FAIL: authorized result asserts load_change before E2");
+            end else begin
+                $display("PASS: authorized result asserts load_change before E2");
+            end
+            check_change("change register holds zero before E2", 10'd0);
             check_controls("calculate pulse is low after E1",
                            1'b0, 1'b0, 1'b0, 1'b0,
                            1'b0, 1'b0, 1'b0, 1'b0);
@@ -378,6 +409,14 @@ module tb_vending_system;
             step();
             check_state("FSM consumes result_valid and enters ENTREGA at E2",
                         ST_ENTREGA);
+            check_change("E2 captures computed change", expected_change);
+            tests_run = tests_run + 1;
+            if (load_change !== 1'b0) begin
+                errors = errors + 1;
+                $display("FAIL: load_change deasserts in ENTREGA");
+            end else begin
+                $display("PASS: load_change deasserts in ENTREGA");
+            end
             check_arithmetic("authorization pulse has been consumed after E2",
                              selection, 1'b1, expected_price, credit,
                              expected_change, 1'b0, 1'b0, 1'b1, 1'b0);
@@ -395,6 +434,8 @@ module tb_vending_system;
             step();
             check_state("delivery edge advances to ESPERA_RESTART",
                         ST_ESPERA_RESTART);
+            check_change("change remains stored in ESPERA_RESTART",
+                         expected_change);
             check_controls("decrement is low after its single-cycle pulse",
                            1'b0, 1'b0, 1'b0, 1'b0,
                            1'b0, 1'b0, 1'b0, 1'b0);
@@ -448,6 +489,7 @@ module tb_vending_system;
                              2'b00, 1'b0, 10'd0, 10'd0,
                              10'd0, 1'b0, 1'b0, 1'b0, 1'b0);
             check_captured_credit("RESTART clears captured credit", 10'd0);
+            check_change("RESTART clears stored change", 10'd0);
         end
     endtask
 
@@ -469,6 +511,7 @@ module tb_vending_system;
                          2'b00, 1'b0, 10'd0, 10'd0,
                          10'd0, 1'b0, 1'b0, 1'b0, 1'b0);
         check_captured_credit("general reset clears captured credit", 10'd0);
+        check_change("general reset clears stored change", 10'd0);
         @(negedge clk);
         reset = 1'b0;
 
@@ -550,12 +593,16 @@ module tb_vending_system;
         check_arithmetic("B credit 200 produces shortfall 75",
                          2'b01, 1'b1, 10'd275, 10'd200,
                          10'd75, 1'b1, 1'b1, 1'b1, 1'b0);
+        check_change("insufficient payment does not store shortfall as change",
+                     10'd0);
         step();
         check_state("insufficient payment remains safely in CALCULO_SALDO",
                     ST_CALCULO_SALDO);
         check_controls("insufficient payment never decrements inventory",
                        1'b0, 1'b0, 1'b0, 1'b0,
                        1'b0, 1'b0, 1'b0, 1'b0);
+        check_change("change remains unchanged after result_valid clears",
+                     10'd0);
         check_inventory("insufficient payment preserves all inventories",
                         2'd3, 2'd2, 2'd2, 1'b0, 1'b0, 1'b0);
 
@@ -566,6 +613,7 @@ module tb_vending_system;
                     ST_REPOSO);
         check_captured_credit("general reset clears nonzero captured credit",
                               10'd0);
+        check_change("general reset clears change register", 10'd0);
         @(negedge clk);
         reset = 1'b0;
 
@@ -591,6 +639,7 @@ module tb_vending_system;
         check_state("final reset returns FSM to REPOSO", ST_REPOSO);
         check_captured_credit("final reset clears invalid request credit",
                               10'd0);
+        check_change("final reset leaves change register at zero", 10'd0);
 
         $display("RESULT: %0d tests, %0d errors", tests_run, errors);
         if (errors != 0)

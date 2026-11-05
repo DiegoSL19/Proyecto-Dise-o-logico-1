@@ -13,6 +13,7 @@ module vending_fsm (
     output logic       load_price,
     output logic       load_credit,
     output logic       calculate_balance,
+    output logic       load_change,
     output logic       decrement_A,
     output logic       decrement_B,
     output logic       decrement_C,
@@ -48,6 +49,7 @@ module vending_fsm (
         load_price = 1'b0;
         load_credit = 1'b0;
         calculate_balance = 1'b0;
+        load_change = 1'b0;
         decrement_A = 1'b0;
         decrement_B = 1'b0;
         decrement_C = 1'b0;
@@ -83,8 +85,10 @@ module vending_fsm (
                 end
 
                 CALCULO_SALDO: begin
-                    if (result_valid && purchase_authorized)
+                    if (result_valid && purchase_authorized) begin
+                        load_change = 1'b1;
                         next_state = ENTREGA;
+                    end
                 end
 
                 ENTREGA: begin

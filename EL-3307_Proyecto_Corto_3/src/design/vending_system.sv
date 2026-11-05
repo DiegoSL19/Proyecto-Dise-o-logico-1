@@ -27,6 +27,8 @@ module vending_system (
     output logic       load_price,
     output logic       load_credit,
     output logic       calculate_balance,
+    output logic [9:0] change_reg,
+    output logic       load_change,
     output logic       decrement_A,
     output logic       decrement_B,
     output logic       decrement_C,
@@ -48,6 +50,7 @@ module vending_system (
         .load_price(load_price),
         .load_credit(load_credit),
         .calculate_balance(calculate_balance),
+        .load_change(load_change),
         .decrement_A(decrement_A),
         .decrement_B(decrement_B),
         .decrement_C(decrement_C),
@@ -60,6 +63,14 @@ module vending_system (
         .capture_credit(capture_credit),
         .credit_in(credit_in),
         .credit_reg(credit_captured)
+    );
+
+    change_register change_register_inst (
+        .clk(clk),
+        .reset(reset || clear_transaction),
+        .load_change(load_change),
+        .change_in(magnitude),
+        .change_reg(change_reg)
     );
 
     transaction_integration transaction_integration_inst (

@@ -15,6 +15,7 @@ module tb_vending_fsm;
     logic       load_price;
     logic       load_credit;
     logic       calculate_balance;
+    logic       load_change;
     logic       decrement_A;
     logic       decrement_B;
     logic       decrement_C;
@@ -52,6 +53,7 @@ module tb_vending_fsm;
         .load_price(load_price),
         .load_credit(load_credit),
         .calculate_balance(calculate_balance),
+        .load_change(load_change),
         .decrement_A(decrement_A),
         .decrement_B(decrement_B),
         .decrement_C(decrement_C),
@@ -237,6 +239,25 @@ module tb_vending_fsm;
         end
     endtask
 
+    task automatic check_change_load(
+        input string label,
+        input logic expected
+    );
+        begin
+            #1;
+            tests_run = tests_run + 1;
+            if (load_change !== expected) begin
+                errors = errors + 1;
+                $display(
+                    "FAIL: %s: load_change=%b expected=%b",
+                    label, load_change, expected
+                );
+            end else begin
+                $display("PASS: %s", label);
+            end
+        end
+    endtask
+
     task automatic enter_capture(input logic [1:0] selection);
         begin
             @(negedge clk);
@@ -267,17 +288,23 @@ module tb_vending_fsm;
             payment_sufficient = 1'b1;
             selected_available = 1'b1;
             enter_capture(selection);
+            check_change_load("load_change inactive during E0 operand load",
+                              1'b0);
             check_controls("E0 loads price and credit",
                            1'b0, 1'b1, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0);
             tick();
             check_state("E0 advances to LANZAR_CALCULO",
                         ST_LANZAR_CALCULO);
+            check_change_load("load_change inactive during E1 calculation",
+                              1'b0);
             check_controls("operand loads end before E1",
                            1'b0, 1'b0, 1'b1, 1'b0, 1'b0, 1'b0, 1'b0);
 
             tick();
             check_state("E1 advances to CALCULO_SALDO",
                         ST_CALCULO_SALDO);
+            check_change_load("load_change asserted for authorized result",
+                              1'b1);
             check_controls("calculate_balance is a single-cycle pulse",
                            1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0);
             tests_run = tests_run + 1;
@@ -291,6 +318,8 @@ module tb_vending_fsm;
             tick();
             check_state("authorized result advances to ENTREGA",
                         ST_ENTREGA);
+            check_change_load("load_change deasserted after E2",
+                              1'b0);
             check_controls("decrement is selected only for captured product",
                            1'b0, 1'b0, 1'b0,
                            (selection == 2'b00),
@@ -321,6 +350,7 @@ module tb_vending_fsm;
                              1'b0);
         tick();
         check_credit_capture("reset prevents credit capture", 1'b0);
+        check_change_load("load_change inactive after reset", 1'b0);
         check_state("synchronous reset selects REPOSO", ST_REPOSO);
         check_controls("no controls asserted in REPOSO",
                        1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0);
@@ -407,9 +437,13 @@ module tb_vending_fsm;
         tick();
         check_state("insufficient-payment calculation waits for result",
                     ST_CALCULO_SALDO);
+        check_change_load("insufficient payment does not load change",
+                          1'b0);
         tick();
         check_state("insufficient payment remains safely in CALCULO_SALDO",
                     ST_CALCULO_SALDO);
+        check_change_load("load_change stays low without result_valid",
+                          1'b0);
         check_controls("insufficient payment produces no decrement",
                        1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0);
 
