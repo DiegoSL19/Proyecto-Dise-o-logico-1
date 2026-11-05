@@ -8,6 +8,7 @@ module vending_fsm (
     input  logic       result_valid,
     input  logic       purchase_authorized,
     input  logic       restart_event,
+    output logic       capture_credit,
     output logic       load_selection,
     output logic       load_price,
     output logic       load_credit,
@@ -42,6 +43,7 @@ module vending_fsm (
 
     always_comb begin
         next_state = state_reg;
+        capture_credit = 1'b0;
         load_selection = 1'b0;
         load_price = 1'b0;
         load_credit = 1'b0;
@@ -56,8 +58,10 @@ module vending_fsm (
         end else begin
             case (state_reg)
                 REPOSO: begin
-                    if (request_event)
+                    if (request_event) begin
+                        capture_credit = 1'b1;
                         next_state = CAPTURA_SOLICITUD;
+                    end
                 end
 
                 CAPTURA_SOLICITUD: begin

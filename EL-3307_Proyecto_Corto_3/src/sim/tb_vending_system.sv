@@ -22,7 +22,9 @@ module tb_vending_system;
     logic result_valid;
     logic selected_available;
     logic purchase_authorized;
-    logic load_selection;
+    logic [9:0] credit_captured;
+    logic       capture_credit;
+    logic       load_selection;
     logic load_price;
     logic load_credit;
     logic calculate_balance;
@@ -68,6 +70,8 @@ module tb_vending_system;
         .result_valid(result_valid),
         .selected_available(selected_available),
         .purchase_authorized(purchase_authorized),
+        .credit_captured(credit_captured),
+        .capture_credit(capture_credit),
         .load_selection(load_selection),
         .load_price(load_price),
         .load_credit(load_credit),
@@ -158,6 +162,25 @@ module tb_vending_system;
                     empty_A, empty_B, empty_C,
                     expected_A, expected_B, expected_C,
                     expected_empty_A, expected_empty_B, expected_empty_C
+                );
+            end else begin
+                $display("PASS: %s", label);
+            end
+        end
+    endtask
+
+    task automatic check_captured_credit(
+        input string label,
+        input logic [9:0] expected
+    );
+        begin
+            #1;
+            tests_run = tests_run + 1;
+            if (credit_captured !== expected) begin
+                errors = errors + 1;
+                $display(
+                    "FAIL: %s: credit_captured=%0d expected=%0d",
+                    label, credit_captured, expected
                 );
             end else begin
                 $display("PASS: %s", label);
@@ -263,9 +286,26 @@ module tb_vending_system;
             product_sel_in = selection;
             credit_in = credit;
             request_event = 1'b1;
+            #1;
+            tests_run = tests_run + 1;
+            if (capture_credit !== 1'b1) begin
+                errors = errors + 1;
+                $display("FAIL: accepted START asserts capture_credit");
+            end else begin
+                $display("PASS: accepted START asserts capture_credit");
+            end
             step();
             check_state("request enters CAPTURA_SOLICITUD",
                         ST_CAPTURA_SOLICITUD);
+            tests_run = tests_run + 1;
+            if (capture_credit !== 1'b0) begin
+                errors = errors + 1;
+                $display("FAIL: capture_credit ends after START edge");
+            end else begin
+                $display("PASS: capture_credit ends after START edge");
+            end
+            check_captured_credit("accepted START captures credit",
+                                  credit);
             @(negedge clk);
             request_event = 1'b0;
             check_controls("CAPTURA_SOLICITUD pulses load_selection",
@@ -293,6 +333,18 @@ module tb_vending_system;
             if (change_DIP) begin
                 @(negedge clk);
                 product_sel_in = selection ^ 2'b01;
+                credit_in = 10'd200;
+                request_event = 1'b1;
+                #1;
+                tests_run = tests_run + 1;
+                if (capture_credit !== 1'b0) begin
+                    errors = errors + 1;
+                    $display("FAIL: busy START must not capture a new credit");
+                end else begin
+                    $display("PASS: busy START does not capture a new credit");
+                end
+                check_captured_credit("external 200 does not replace captured 500",
+                                      credit);
                 check_arithmetic("external DIP change cannot alter registered product before E0",
                                  selection, 1'b1, 10'd0, 10'd0,
                                  10'd0, 1'b0, 1'b0, 1'b1, 1'b0);
@@ -306,6 +358,10 @@ module tb_vending_system;
             check_arithmetic("E0 registers operands from this transaction",
                              selection, 1'b1, expected_price, credit,
                              10'd0, 1'b0, 1'b0, 1'b1, 1'b0);
+            if (change_DIP) begin
+                @(negedge clk);
+                request_event = 1'b0;
+            end
             check_controls("loads are low and calculate is a one-cycle E1 control",
                            1'b0, 1'b0, 1'b0, 1'b1,
                            1'b0, 1'b0, 1'b0, 1'b0);
@@ -361,14 +417,28 @@ module tb_vending_system;
         input logic [1:0] expected_C
     );
         begin
+            logic [9:0] saved_credit;
+            saved_credit = credit_captured;
             @(negedge clk);
             restart_event = 1'b1;
+            request_event = 1'b1;
+            #1;
+            tests_run = tests_run + 1;
+            if (capture_credit !== 1'b0) begin
+                errors = errors + 1;
+                $display("FAIL: START in ESPERA_RESTART must not capture");
+            end else begin
+                $display("PASS: START in ESPERA_RESTART is ignored");
+            end
+            check_captured_credit("START during ESPERA_RESTART preserves credit",
+                                  saved_credit);
             check_controls("FSM accepts RESTART only in ESPERA_RESTART",
                            1'b0, 1'b0, 1'b0, 1'b0,
                            1'b0, 1'b0, 1'b0, 1'b1);
             step();
             @(negedge clk);
             restart_event = 1'b0;
+            request_event = 1'b0;
             check_state("RESTART returns FSM to REPOSO", ST_REPOSO);
             check_inventory("RESTART preserves inventory",
                             expected_A, expected_B, expected_C,
@@ -377,6 +447,7 @@ module tb_vending_system;
             check_arithmetic("RESTART invalidates transaction data",
                              2'b00, 1'b0, 10'd0, 10'd0,
                              10'd0, 1'b0, 1'b0, 1'b0, 1'b0);
+            check_captured_credit("RESTART clears captured credit", 10'd0);
         end
     endtask
 
@@ -397,6 +468,7 @@ module tb_vending_system;
         check_arithmetic("reset clears transaction arithmetic",
                          2'b00, 1'b0, 10'd0, 10'd0,
                          10'd0, 1'b0, 1'b0, 1'b0, 1'b0);
+        check_captured_credit("general reset clears captured credit", 10'd0);
         @(negedge clk);
         reset = 1'b0;
 
@@ -411,7 +483,7 @@ module tb_vending_system;
                        1'b0, 1'b0, 1'b0, 1'b0);
 
         complete_successful_purchase(
-            2'b00, 10'd150, 10'd150, 10'd0,
+            2'b00, 10'd500, 10'd150, 10'd350,
             2'd3, 2'd3, 2'd3, 1'b1
         );
         restart_transaction(2'd2, 2'd3, 2'd3);
@@ -492,6 +564,8 @@ module tb_vending_system;
         step();
         check_state("reset safely recovers from insufficient-payment wait",
                     ST_REPOSO);
+        check_captured_credit("general reset clears nonzero captured credit",
+                              10'd0);
         @(negedge clk);
         reset = 1'b0;
 
@@ -515,6 +589,8 @@ module tb_vending_system;
         check_inventory("final general reset restores 3/3/3",
                         2'd3, 2'd3, 2'd3, 1'b0, 1'b0, 1'b0);
         check_state("final reset returns FSM to REPOSO", ST_REPOSO);
+        check_captured_credit("final reset clears invalid request credit",
+                              10'd0);
 
         $display("RESULT: %0d tests, %0d errors", tests_run, errors);
         if (errors != 0)

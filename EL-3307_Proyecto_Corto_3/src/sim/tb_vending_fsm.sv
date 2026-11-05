@@ -10,6 +10,7 @@ module tb_vending_fsm;
     logic       result_valid;
     logic       purchase_authorized;
     logic       restart_event;
+    logic       capture_credit;
     logic       load_selection;
     logic       load_price;
     logic       load_credit;
@@ -46,6 +47,7 @@ module tb_vending_fsm;
         .result_valid(result_valid),
         .purchase_authorized(purchase_authorized),
         .restart_event(restart_event),
+        .capture_credit(capture_credit),
         .load_selection(load_selection),
         .load_price(load_price),
         .load_credit(load_credit),
@@ -216,17 +218,45 @@ module tb_vending_fsm;
         end
     endtask
 
+    task automatic check_credit_capture(
+        input string label,
+        input logic expected
+    );
+        begin
+            #1;
+            tests_run = tests_run + 1;
+            if (capture_credit !== expected) begin
+                errors = errors + 1;
+                $display(
+                    "FAIL: %s: capture_credit=%b expected=%b",
+                    label, capture_credit, expected
+                );
+            end else begin
+                $display("PASS: %s", label);
+            end
+        end
+    endtask
+
     task automatic enter_capture(input logic [1:0] selection);
         begin
             @(negedge clk);
             product_sel_in = selection;
             request_event = 1'b1;
+            check_credit_capture("START in REPOSO enables credit capture",
+                                 1'b1);
             tick();
+            check_credit_capture("accepted START ends credit capture pulse",
+                                 1'b0);
             request_event = 1'b0;
             check_state("request enters CAPTURA_SOLICITUD", ST_CAPTURA_SOLICITUD);
             check_controls("CAPTURA_SOLICITUD load_selection pulse",
                            1'b1, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0);
+            @(negedge clk);
+            request_event = 1'b1;
+            check_credit_capture("START while busy does not capture credit",
+                                 1'b0);
             tick();
+            request_event = 1'b0;
             check_state("capture advances to CARGA_Y_REVISION",
                         ST_CARGA_Y_REVISION);
         end
@@ -286,12 +316,17 @@ module tb_vending_fsm;
         tests_run = 0;
         errors = 0;
 
+        request_event = 1'b1;
+        check_credit_capture("START while reset is active is not accepted",
+                             1'b0);
         tick();
+        check_credit_capture("reset prevents credit capture", 1'b0);
         check_state("synchronous reset selects REPOSO", ST_REPOSO);
         check_controls("no controls asserted in REPOSO",
                        1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0);
         @(negedge clk);
         reset = 1'b0;
+        request_event = 1'b0;
         restart_event = 1'b1;
         check_controls("RESTART event in REPOSO is ignored",
                        1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0);
@@ -301,6 +336,8 @@ module tb_vending_fsm;
                     ST_REPOSO);
 
         successful_transaction(2'b00);
+        check_credit_capture("busy FSM does not capture another credit",
+                             1'b0);
         check_controls("RESTART stays inactive without an event in ESPERA_RESTART",
                        1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0);
         @(negedge clk);
@@ -312,10 +349,14 @@ module tb_vending_fsm;
         successful_transaction(2'b01);
         @(negedge clk);
         restart_event = 1'b1;
+        request_event = 1'b1;
+        check_credit_capture("START in ESPERA_RESTART does not capture credit",
+                             1'b0);
         check_controls("RESTART control is asserted only in ESPERA_RESTART",
                        1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b1);
         tick();
         restart_event = 1'b0;
+        request_event = 1'b0;
         check_state("B transaction RESTART returns to REPOSO", ST_REPOSO);
 
         successful_transaction(2'b10);

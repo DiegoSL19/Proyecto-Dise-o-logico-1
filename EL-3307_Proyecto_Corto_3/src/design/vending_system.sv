@@ -21,6 +21,8 @@ module vending_system (
     output logic       result_valid,
     output logic       selected_available,
     output logic       purchase_authorized,
+    output logic [9:0] credit_captured,
+    output logic       capture_credit,
     output logic       load_selection,
     output logic       load_price,
     output logic       load_credit,
@@ -41,6 +43,7 @@ module vending_system (
         .result_valid(result_valid),
         .purchase_authorized(purchase_authorized),
         .restart_event(restart_event),
+        .capture_credit(capture_credit),
         .load_selection(load_selection),
         .load_price(load_price),
         .load_credit(load_credit),
@@ -51,14 +54,21 @@ module vending_system (
         .clear_transaction(clear_transaction)
     );
 
-    // Keep credit_in stable from request_event through the E0 load edge.
+    request_credit_register request_credit_register_inst (
+        .clk(clk),
+        .reset(reset || clear_transaction),
+        .capture_credit(capture_credit),
+        .credit_in(credit_in),
+        .credit_reg(credit_captured)
+    );
+
     transaction_integration transaction_integration_inst (
         .clk(clk),
         .reset(reset),
         .restart(clear_transaction),
         .load_selection(load_selection),
         .product_sel_in(product_sel_in),
-        .credit_in(credit_in),
+        .credit_in(credit_captured),
         .decrement_A(decrement_A),
         .decrement_B(decrement_B),
         .decrement_C(decrement_C),
