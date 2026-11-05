@@ -6,6 +6,9 @@ module tb_transaction_integration;
     logic load_selection;
     logic [1:0] product_sel_in;
     logic [9:0] credit_in;
+    logic decrement_A;
+    logic decrement_B;
+    logic decrement_C;
     logic load_price;
     logic load_credit;
     logic calculate_balance;
@@ -38,6 +41,9 @@ module tb_transaction_integration;
         .load_selection(load_selection),
         .product_sel_in(product_sel_in),
         .credit_in(credit_in),
+        .decrement_A(decrement_A),
+        .decrement_B(decrement_B),
+        .decrement_C(decrement_C),
         .load_price(load_price),
         .load_credit(load_credit),
         .calculate_balance(calculate_balance),
@@ -65,6 +71,44 @@ module tb_transaction_integration;
         begin
             @(posedge clk);
             #1;
+        end
+    endtask
+
+    task automatic check_inventory(
+        input string label,
+        input logic [1:0] expected_A,
+        input logic [1:0] expected_B,
+        input logic [1:0] expected_C,
+        input logic expected_empty_A,
+        input logic expected_empty_B,
+        input logic expected_empty_C
+    );
+        logic [8:0] actual;
+        logic [8:0] expected;
+        begin
+            #1;
+            actual = {
+                inventory_A, inventory_B, inventory_C,
+                empty_A, empty_B, empty_C
+            };
+            expected = {
+                expected_A, expected_B, expected_C,
+                expected_empty_A, expected_empty_B, expected_empty_C
+            };
+
+            tests_run = tests_run + 1;
+            if (actual !== expected) begin
+                errors = errors + 1;
+                $display(
+                    "FAIL: %s: inventory=%0d/%0d/%0d empty=%b%b%b expected inventory=%0d/%0d/%0d empty=%b%b%b",
+                    label, inventory_A, inventory_B, inventory_C,
+                    empty_A, empty_B, empty_C,
+                    expected_A, expected_B, expected_C,
+                    expected_empty_A, expected_empty_B, expected_empty_C
+                );
+            end else begin
+                $display("PASS: %s", label);
+            end
         end
     endtask
 
@@ -204,6 +248,9 @@ module tb_transaction_integration;
         load_selection = 1'b0;
         product_sel_in = 2'b00;
         credit_in = 10'd0;
+        decrement_A = 1'b0;
+        decrement_B = 1'b0;
+        decrement_C = 1'b0;
         load_price = 1'b0;
         load_credit = 1'b0;
         calculate_balance = 1'b0;
@@ -382,6 +429,103 @@ module tb_transaction_integration;
         load_operands(10'd150, 2'b00, 10'd150);
         calculate_and_check("transaction after RESTART is independent",
                             2'b00, 10'd150, 10'd150, 10'd0, 1'b0, 1'b1);
+
+        check_inventory("authorization does not decrement inventory when enables are low",
+                        2'd3, 2'd3, 2'd3, 1'b0, 1'b0, 1'b0);
+
+        decrement_A = 1'b1;
+        tick();
+        decrement_A = 1'b0;
+        check_inventory("one decrement pulse changes only A from 3 to 2",
+                        2'd2, 2'd3, 2'd3, 1'b0, 1'b0, 1'b0);
+
+        decrement_B = 1'b1;
+        tick();
+        decrement_B = 1'b0;
+        check_inventory("one decrement pulse changes only B from 3 to 2",
+                        2'd2, 2'd2, 2'd3, 1'b0, 1'b0, 1'b0);
+
+        decrement_C = 1'b1;
+        tick();
+        decrement_C = 1'b0;
+        check_inventory("one decrement pulse changes only C from 3 to 2",
+                        2'd2, 2'd2, 2'd2, 1'b0, 1'b0, 1'b0);
+
+        decrement_A = 1'b1;
+        tick();
+        decrement_A = 1'b0;
+        check_inventory("second A pulse changes A from 2 to 1",
+                        2'd1, 2'd2, 2'd2, 1'b0, 1'b0, 1'b0);
+
+        decrement_A = 1'b1;
+        tick();
+        decrement_A = 1'b0;
+        check_inventory("third A pulse changes A from 1 to 0",
+                        2'd0, 2'd2, 2'd2, 1'b1, 1'b0, 1'b0);
+        check_inventory("empty_A asserts exactly when A reaches zero",
+                        2'd0, 2'd2, 2'd2, 1'b1, 1'b0, 1'b0);
+
+        decrement_A = 1'b1;
+        tick();
+        decrement_A = 1'b0;
+        check_inventory("A does not underflow below zero",
+                        2'd0, 2'd2, 2'd2, 1'b1, 1'b0, 1'b0);
+        check_inventory("decrements of A leave B and C unchanged",
+                        2'd0, 2'd2, 2'd2, 1'b1, 1'b0, 1'b0);
+
+        restart = 1'b1;
+        tick();
+        restart = 1'b0;
+        check_inventory("RESTART preserves partially depleted inventory",
+                        2'd0, 2'd2, 2'd2, 1'b1, 1'b0, 1'b0);
+
+        capture_selection(2'b00);
+        credit_in = 10'd150;
+        load_price = 1'b1;
+        load_credit = 1'b1;
+        tick();
+        load_price = 1'b0;
+        load_credit = 1'b0;
+        check_state("load operands for exhausted A transaction",
+                    2'b00, 1'b1, 10'd150, 10'd150,
+                    2'd0, 2'd2, 2'd2,
+                    10'd0, 1'b0, 1'b0, 1'b0, 1'b0);
+        calculate_balance = 1'b1;
+        tick();
+        calculate_balance = 1'b0;
+        check_state("sufficient valid result cannot authorize exhausted A",
+                    2'b00, 1'b1, 10'd150, 10'd150,
+                    2'd0, 2'd2, 2'd2,
+                    10'd0, 1'b0, 1'b1, 1'b0, 1'b0);
+
+        capture_selection(2'b01);
+        check_state("available B remains selectable while A is exhausted",
+                    2'b01, 1'b1, 10'd0, 10'd0,
+                    2'd0, 2'd2, 2'd2,
+                    10'd0, 1'b0, 1'b0, 1'b1, 1'b0);
+
+        // The FSM must limit each delivery decrement command to one clock.
+        decrement_B = 1'b1;
+        tick();
+        check_inventory("held B decrement enable causes first repeated decrement",
+                        2'd0, 2'd1, 2'd2, 1'b1, 1'b0, 1'b0);
+        tick();
+        check_inventory("held B decrement enable causes second repeated decrement",
+                        2'd0, 2'd0, 2'd2, 1'b1, 1'b1, 1'b0);
+        tick();
+        decrement_B = 1'b0;
+        check_inventory("held B enable saturates at zero on later clocks",
+                        2'd0, 2'd0, 2'd2, 1'b1, 1'b1, 1'b0);
+
+        reset = 1'b1;
+        decrement_C = 1'b1;
+        tick();
+        decrement_C = 1'b0;
+        check_state("general reset restores inventory despite asserted decrement",
+                    2'b00, 1'b0, 10'd0, 10'd0,
+                    2'd3, 2'd3, 2'd3,
+                    10'd0, 1'b0, 1'b0, 1'b0, 1'b0);
+        reset = 1'b0;
 
         $display("RESULT: %0d tests, %0d errors", tests_run, errors);
         if (errors != 0)
