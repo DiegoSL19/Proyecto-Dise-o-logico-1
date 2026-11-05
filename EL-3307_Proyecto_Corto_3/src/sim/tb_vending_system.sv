@@ -640,6 +640,15 @@ module tb_vending_system;
         check_captured_credit("final reset clears invalid request credit",
                               10'd0);
         check_change("final reset leaves change register at zero", 10'd0);
+        @(negedge clk);
+        reset = 1'b0;
+
+        complete_successful_purchase(
+            2'b00, 10'd200, 10'd150, 10'd50,
+            2'd3, 2'd3, 2'd3, 1'b0
+        );
+
+
 
         $display("RESULT: %0d tests, %0d errors", tests_run, errors);
         if (errors != 0)
