@@ -8,6 +8,7 @@ module tb_vending_fsm;
     logic [1:0] product_sel_reg;
     logic       selected_available;
     logic       result_valid;
+    logic       negative;
     logic       purchase_authorized;
     logic       restart_event;
     logic       capture_credit;
@@ -19,6 +20,7 @@ module tb_vending_fsm;
     logic       decrement_A;
     logic       decrement_B;
     logic       decrement_C;
+    logic       refund_active;
     logic       clear_transaction;
     logic       payment_sufficient;
 
@@ -46,6 +48,7 @@ module tb_vending_fsm;
         .product_sel_reg(product_sel_reg),
         .selected_available(selected_available),
         .result_valid(result_valid),
+        .negative(negative),
         .purchase_authorized(purchase_authorized),
         .restart_event(restart_event),
         .capture_credit(capture_credit),
@@ -57,6 +60,7 @@ module tb_vending_fsm;
         .decrement_A(decrement_A),
         .decrement_B(decrement_B),
         .decrement_C(decrement_C),
+        .refund_active(refund_active),
         .clear_transaction(clear_transaction)
     );
 
@@ -91,6 +95,8 @@ module tb_vending_fsm;
         selection_valid &&
         selected_available &&
         payment_sufficient;
+
+    assign negative = result_valid && !payment_sufficient;
 
     always_ff @(posedge clk) begin
         if (reset || clear_transaction) begin
@@ -417,16 +423,35 @@ module tb_vending_fsm;
         check_controls("unavailable product blocks price and credit loads",
                        1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0);
         tick();
-        check_state("exhausted product remains in safe load wait",
-                    ST_CARGA_Y_REVISION);
+        check_state("exhausted product starts automatic refund",
+                    ST_DEVOLUCION);
+        tests_run = tests_run + 1;
+        if (refund_active !== 1'b1) begin
+            errors = errors + 1;
+            $display("FAIL: refund_active no se activo durante DEVOLUCION");  
+        end else begin
+            $display("PASS: refund_active activo durante DEVOLUCION");
+        end
+        
 
         @(negedge clk);
-        reset = 1'b1;
+        
         tick();
-        check_state("reset from exhausted-product wait returns to REPOSO",
-                    ST_REPOSO);
+        check_state("automatic refund reaches RETORNO_REPOSO",
+                   ST_RETORNO_REPOSO);
+        tests_run = tests_run + 1;
+        if (clear_transaction !== 1'b1) begin
+            errors = errors + 1;
+            $display("FAIL: clear_transaction no se activo durante RETORNO_REPOSO");
+        end else begin
+            $display("PASS: clear_transaction activo durante RETORNO_REPOSO");
+        end
+
         @(negedge clk);
         reset = 1'b0;
+        tick();
+        check_state("automatic refund returns to REPOSO",
+            ST_REPOSO);
 
         selected_available = 1'b1;
         payment_sufficient = 1'b0;
@@ -440,20 +465,39 @@ module tb_vending_fsm;
         check_change_load("insufficient payment does not load change",
                           1'b0);
         tick();
-        check_state("insufficient payment remains safely in CALCULO_SALDO",
-                    ST_CALCULO_SALDO);
+        check_state("insufficient payment starts automatic refund",
+            ST_DEVOLUCION);
+              tests_run = tests_run + 1;
+        if (refund_active !== 1'b1) begin
+            errors = errors + 1;
+            $display("FAIL: refund_active no se activo durante DEVOLUCION");  
+        end else begin
+            $display("PASS: refund_active activo durante DEVOLUCION");
+        end
+        
         check_change_load("load_change stays low without result_valid",
                           1'b0);
         check_controls("insufficient payment produces no decrement",
                        1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0);
 
         @(negedge clk);
-        reset = 1'b1;
+      
         tick();
-        check_state("reset from calculation wait returns to REPOSO",
-                    ST_REPOSO);
+        check_state("insufficient payment reaches RETORNO_REPOSO",
+                   ST_RETORNO_REPOSO);
+         tests_run = tests_run + 1;
+        if (clear_transaction !== 1'b1) begin
+            errors = errors + 1;
+            $display("FAIL: clear_transaction no se activo durante RETORNO_REPOSO");
+        end else begin
+            $display("PASS: clear_transaction activo durante RETORNO_REPOSO");
+        end
         @(negedge clk);
         reset = 1'b0;
+        tick();
+        check_state("insufficient payment returns automatically to REPOSO",
+                   ST_REPOSO);
+
 
         $display("RESULT: %0d tests, %0d errors", tests_run, errors);
         if (errors != 0)

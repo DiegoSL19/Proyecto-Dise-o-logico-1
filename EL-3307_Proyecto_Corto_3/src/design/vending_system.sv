@@ -32,6 +32,7 @@ module vending_system (
     output logic       decrement_A,
     output logic       decrement_B,
     output logic       decrement_C,
+    output logic       refund_active,
     output logic       clear_transaction
 );
 
@@ -43,6 +44,7 @@ module vending_system (
         .product_sel_reg(product_sel_reg),
         .selected_available(selected_available),
         .result_valid(result_valid),
+        .negative(negative),
         .purchase_authorized(purchase_authorized),
         .restart_event(restart_event),
         .capture_credit(capture_credit),
@@ -54,6 +56,7 @@ module vending_system (
         .decrement_A(decrement_A),
         .decrement_B(decrement_B),
         .decrement_C(decrement_C),
+        .refund_active(refund_active),
         .clear_transaction(clear_transaction)
     );
 

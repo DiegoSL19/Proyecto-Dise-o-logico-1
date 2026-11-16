@@ -33,6 +33,7 @@ module tb_vending_system;
     logic decrement_A;
     logic decrement_B;
     logic decrement_C;
+    logic refund_active;
     logic clear_transaction;
 
     integer tests_run;
@@ -48,6 +49,8 @@ module tb_vending_system;
     localparam logic [8:0] ST_CALCULO_SALDO     = 9'b000010000;
     localparam logic [8:0] ST_ENTREGA           = 9'b000100000;
     localparam logic [8:0] ST_ESPERA_RESTART    = 9'b001000000;
+    localparam logic [8:0] ST_DEVOLUCION     = 9'b010000000;
+    localparam logic [8:0] ST_RETORNO_REPOSO = 9'b100000000;
 
     vending_system dut (
         .clk(clk),
@@ -83,6 +86,7 @@ module tb_vending_system;
         .decrement_A(decrement_A),
         .decrement_B(decrement_B),
         .decrement_C(decrement_C),
+        .refund_active(refund_active),
         .clear_transaction(clear_transaction)
     );
 
@@ -532,20 +536,20 @@ module tb_vending_system;
         restart_transaction(2'd2, 2'd3, 2'd3);
 
         complete_successful_purchase(
-            2'b00, 10'd150, 10'd150, 10'd0,
+           2'b00, 10'd200, 10'd150, 10'd50,
             2'd2, 2'd3, 2'd3, 1'b0
         );
         restart_transaction(2'd1, 2'd3, 2'd3);
 
         complete_successful_purchase(
-            2'b00, 10'd150, 10'd150, 10'd0,
+           2'b00, 10'd200, 10'd150, 10'd50,
             2'd1, 2'd3, 2'd3, 1'b0
         );
         check_inventory("A is exhausted after its third sale",
                         2'd0, 2'd3, 2'd3, 1'b1, 1'b0, 1'b0);
 
         restart_transaction(2'd0, 2'd3, 2'd3);
-        begin_transaction(2'b00, 10'd150);
+        begin_transaction(2'b00, 10'd200);
         check_controls("exhausted A does not load operands or calculate",
                        1'b0, 1'b0, 1'b0, 1'b0,
                        1'b0, 1'b0, 1'b0, 1'b0);
@@ -553,20 +557,45 @@ module tb_vending_system;
                          2'b00, 1'b1, 10'd0, 10'd0,
                          10'd0, 1'b0, 1'b0, 1'b0, 1'b0);
         step();
-        check_state("exhausted A remains in safe CARGA_Y_REVISION wait",
-                    ST_CARGA_Y_REVISION);
+        check_state("exhausted A starts automatic refund",
+            ST_DEVOLUCION);
         check_controls("no decrement for exhausted A",
                        1'b0, 1'b0, 1'b0, 1'b0,
                        1'b0, 1'b0, 1'b0, 1'b0);
-
+        tests_run = tests_run + 1;
+if (refund_active !== 1'b1) begin
+    errors = errors + 1;
+    $display("FAIL: refund_active no se activo para A agotado");
+end else begin
+    $display("PASS: refund_active activo para A agotado");
+end
         @(negedge clk);
-        reset = 1'b1;
+        
         step();
-        check_inventory("general reset recovers exhausted inventory",
-                        2'd3, 2'd3, 2'd3, 1'b0, 1'b0, 1'b0);
-        check_state("general reset exits safe wait to REPOSO", ST_REPOSO);
+        check_inventory("refund preserves exhausted A inventory",
+                2'd0, 2'd3, 2'd3, 1'b1, 1'b0, 1'b0);
+        check_state("refund reaches RETORNO_REPOSO", ST_RETORNO_REPOSO);
+        tests_run = tests_run + 1;
+if (clear_transaction !== 1'b1) begin
+    errors = errors + 1;
+    $display("FAIL: clear_transaction no se activo para A agotado");
+end else begin
+    $display("PASS: clear_transaction activo para A agotado");
+end
         @(negedge clk);
         reset = 1'b0;
+        step();
+check_state("exhausted A refund returns to REPOSO", ST_REPOSO);
+check_inventory("A remains exhausted after refund",
+                2'd0, 2'd3, 2'd3, 1'b1, 1'b0, 1'b0);
+                @(negedge clk);
+reset = 1'b1;
+step();
+check_inventory("global reset restores inventory",
+                2'd3, 2'd3, 2'd3, 1'b0, 1'b0, 1'b0);
+ @(negedge clk);
+reset = 1'b0;
+
 
         complete_successful_purchase(
             2'b01, 10'd300, 10'd275, 10'd25,
@@ -580,7 +609,7 @@ module tb_vending_system;
         );
 
         restart_transaction(2'd3, 2'd2, 2'd2);
-        begin_transaction(2'b01, 10'd200);
+        begin_transaction(2'b10, 10'd300);
         check_controls("insufficient-payment transaction loads normally",
                        1'b0, 1'b1, 1'b1, 1'b0,
                        1'b0, 1'b0, 1'b0, 1'b0);
@@ -590,14 +619,23 @@ module tb_vending_system;
         step();
         check_state("insufficient payment reaches CALCULO_SALDO",
                     ST_CALCULO_SALDO);
-        check_arithmetic("B credit 200 produces shortfall 75",
-                         2'b01, 1'b1, 10'd275, 10'd200,
-                         10'd75, 1'b1, 1'b1, 1'b1, 1'b0);
+        check_arithmetic("C credit 300 produces shortfall 100",
+    2'b10, 1'b1, 10'd400, 10'd300,
+    10'd100, 1'b1, 1'b1, 1'b1, 1'b0);
         check_change("insufficient payment does not store shortfall as change",
                      10'd0);
         step();
-        check_state("insufficient payment remains safely in CALCULO_SALDO",
-                    ST_CALCULO_SALDO);
+        check_state("C insufficient payment starts automatic refund",
+            ST_DEVOLUCION);
+        check_captured_credit("C refund preserves full credit 300",
+                      10'd300);
+                        tests_run = tests_run + 1;
+if (refund_active !== 1'b1) begin
+    errors = errors + 1;
+    $display("FAIL: refund_active no se activo para C pago insufficiente");
+end else begin
+    $display("PASS: refund_active activo para C pago insufficiente");
+end
         check_controls("insufficient payment never decrements inventory",
                        1'b0, 1'b0, 1'b0, 1'b0,
                        1'b0, 1'b0, 1'b0, 1'b0);
@@ -606,16 +644,29 @@ module tb_vending_system;
         check_inventory("insufficient payment preserves all inventories",
                         2'd3, 2'd2, 2'd2, 1'b0, 1'b0, 1'b0);
 
-        @(negedge clk);
-        reset = 1'b1;
+        
+       
         step();
-        check_state("reset safely recovers from insufficient-payment wait",
-                    ST_REPOSO);
-        check_captured_credit("general reset clears nonzero captured credit",
-                              10'd0);
-        check_change("general reset clears change register", 10'd0);
+        check_state("C insufficient payment reaches RETORNO_REPOSO",
+            ST_RETORNO_REPOSO);
+        check_captured_credit("C credit remains 300 before synchronous clear",
+                      10'd300);
+        check_change("C refund keeps change register at zero", 10'd0);
+        tests_run = tests_run + 1;
+if (clear_transaction !== 1'b1) begin
+    errors = errors + 1;
+    $display("FAIL: clear_transaction no se activo para C");
+end else begin
+    $display("PASS: clear_transaction activo para C");
+end
         @(negedge clk);
         reset = 1'b0;
+        step();
+check_state("C refund returns automatically to REPOSO", ST_REPOSO);
+check_captured_credit("C refund clears captured credit",
+                      10'd0);
+                      check_inventory("C refund preserves inventory",
+                2'd3, 2'd2, 2'd2, 1'b0, 1'b0, 1'b0);
 
         begin_transaction(2'b11, 10'd300);
         check_arithmetic("invalid selection is captured as invalid",
@@ -649,7 +700,11 @@ module tb_vending_system;
         );
 
 
-
+restart_transaction(2'd2, 2'd3, 2'd3);
+complete_successful_purchase(
+    2'b10, 10'd400, 10'd400, 10'd0,
+    2'd2, 2'd3, 2'd3, 1'b0
+);
         $display("RESULT: %0d tests, %0d errors", tests_run, errors);
         if (errors != 0)
             $fatal(1, "vending_system testbench failed");

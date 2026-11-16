@@ -6,6 +6,7 @@ module vending_fsm (
     input  logic [1:0] product_sel_reg,
     input  logic       selected_available,
     input  logic       result_valid,
+    input  logic       negative,
     input  logic       purchase_authorized,
     input  logic       restart_event,
     output logic       capture_credit,
@@ -17,6 +18,7 @@ module vending_fsm (
     output logic       decrement_A,
     output logic       decrement_B,
     output logic       decrement_C,
+    output logic       refund_active,
     output logic       clear_transaction
 );
 
@@ -54,6 +56,7 @@ module vending_fsm (
         decrement_B = 1'b0;
         decrement_C = 1'b0;
         clear_transaction = 1'b0;
+        refund_active = 1'b0;
 
         if (reset) begin
             next_state = REPOSO;
@@ -77,6 +80,11 @@ module vending_fsm (
                         load_credit = 1'b1;
                         next_state = LANZAR_CALCULO;
                     end
+                else if (selection_valid && !selected_available) begin
+                    next_state = DEVOLUCION;
+                    end
+
+
                 end
 
                 LANZAR_CALCULO: begin
@@ -88,6 +96,9 @@ module vending_fsm (
                     if (result_valid && purchase_authorized) begin
                         load_change = 1'b1;
                         next_state = ENTREGA;
+                    end
+                    else if (result_valid && negative) begin
+                    next_state = DEVOLUCION;
                     end
                 end
 
@@ -116,11 +127,13 @@ module vending_fsm (
 
                 // Diese unvollständigen Pfade bleiben bis zur Klärung sicher stehen.
                 DEVOLUCION: begin
-                    next_state = DEVOLUCION;
+                    refund_active = 1'b1;
+                    next_state = RETORNO_REPOSO;
                 end
 
                 RETORNO_REPOSO: begin
-                    next_state = RETORNO_REPOSO;
+                    clear_transaction = 1'b1;
+                    next_state = REPOSO;
                 end
 
                 default: begin
