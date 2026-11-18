@@ -1,5 +1,14 @@
 # Auditoría y verificación del Proyecto Corto 3
 
+Actualización del 18/11/2026: el PC3 utiliza copias locales de los módulos
+reutilizados y compila y se sintetiza sin carpeta PC2. La nueva regresión
+pasó 14 bancos RTL (52 278 comprobaciones, cero errores) y 565 comprobaciones
+post-ruteo con SDF. Fmax: 53,526 MHz. La simulación post-síntesis continúa
+**NO DISPONIBLE / NO APROBADA** por cifrado GOWIN 2.3. El detalle actual está
+en [independencia del PC3](independencia_pc3.md) y en la sección final de este
+informe. El contenido previo a la sección final conserva el historial de la
+integración publicada en `e1ca2ac`, incluida la regresión conjunta de PC2/PC3.
+
 ## Alcance y criterio
 
 Se revisaron las fuentes SystemVerilog, bancos de prueba, documentación,
@@ -492,3 +501,73 @@ Referencias de herramientas: Gowin SUG100-4.4.2E, sección 7, páginas 83–84
 (`.vg`/`prim_sim.v` y `.vo`/SDF/`prim_tsim.v`); SUG550-2.0.1E, sección 5.16;
 manual local Questa SIM Reference, opciones `-sdfreport=<filename>` y
 `+sdf_verbose`. Referencias eléctricas oficiales enlazadas en la guía de montaje.
+
+## Independencia del PC3: verificación del 18/11/2026
+
+Base revisada: `e1ca2ac`. Se copiaron sin cambios `synchronizer.sv`,
+`debouncer.sv`, `subtractor.sv`, `bcd_converter.sv`, `rom_reg.sv`,
+`tick_generator.sv`, `disp_hex_mux.sv` y `bcdtable.txt` a `src/design/reused`.
+Los ocho archivos coinciden byte por byte con el PC2 y con los blobs de Git
+del commit base. No se modificó ningún archivo del PC2 ni los 14 SV originales
+de diseño del PC3, ni CST/SDC. Permanecen la FSM de nueve estados One-Hot,
+precios, inventarios, devolución, LED, display y reloj único de 27 MHz.
+
+Se actualizaron ambos Tcl de Gowin, ambos controladores de Questa y el
+Makefile para utilizar exclusivamente las copias del PC3. `vending_display`
+conserva sus instancias y resuelve sus dependencias con esa lista de fuentes.
+Los flujos preparan las primeras 512 entradas de la tabla local de 1024,
+respetando la ruta relativa original sin editar los módulos copiados.
+
+La prueba de independencia se ejecutó en
+`work/standalone_20261118_f16f550c/pc3`, sin carpeta hermana PC2. Los manifiestos
+de compilación y el GPRJ verifican que todas las fuentes del usuario y la ROM
+son locales. Se compilan 21 módulos, con cero definiciones duplicadas. El GPRJ
+contiene 23 archivos habilitados y únicos: 21 SV y CST/SDC. También se ejecutó
+`make -n gowin` desde `src/build`, resolviendo los prerrequisitos locales.
+
+| Comprobación ejecutada | Resultado real |
+|---|---|
+| Questa RTL, 35 fuentes | **14 bancos aprobados, 52 278 comprobaciones, 0 errores**. |
+| Display completo | `0050`, `0025`, `0000`, `0550`; A700 añadido al banco versionado del top. |
+| Gowin sin PC2, parámetros reales | Síntesis, colocación, ruteo y STA completados. |
+| Proyecto Gowin de trabajo regenerado | Mismos resultados, todas sus fuentes dentro de PC3. |
+| Temporización | Fmax **53,526 MHz**, setup **+18,354 ns**, hold **+0,561 ns**, cero violaciones. |
+| Recursos / pines | 717 unidades lógicas, 396 registros, cero latches, 28 puertos conservados. |
+| Netlist post-ruteo con SDF máximo | **565 comprobaciones, 0 errores**; nueve entregas y dos devoluciones, incluido A700/0550. |
+| Anotación SDF | 2882 caminos, 1434 controles temporales, 3177 interconexiones. |
+| Netlist funcional post-síntesis | **NO DISPONIBLE / NO APROBADA**, cinco errores de compilación por envoltura GOWIN 2.3. |
+
+La nueva corrida RTL tiene 55 comprobaciones adicionales de A700 respecto
+a los 52 223 del PC3 de la corrida conjunta histórica. El banco del top suma
+765 y el del display conserva 50 476. El flujo independiente deja de ejecutar
+los 16 bancos del PC2; sus 967 comprobaciones del commit base no se presentan
+como una ejecución nueva. Se cotejaron los hashes de las 35 fuentes RTL con
+los archivos finales: cero diferencias.
+
+Los 28 pines coinciden con el CST, sin duplicados, con los mismos bancos e
+IO_TYPE: ocho E/S a 1,8 V y veinte a 3,3 V. No hubo errores ROM ni advertencia
+EX2412. Se conserva NL0002 de optimización de la frontera `purchase_decision`
+y el aviso de Questa por `+acc`; no son fallos de esta reorganización.
+
+La compilación nueva del `.vg` falló en sus líneas 30, 33, 34 y 39: versión
+de protección no aceptada, metadatos `encrypt_agent`/`encrypt_agent_info` y
+dos errores derivados de interpretar la carga cifrada como HDL. En esta
+corrida el carácter inesperado fue `/`; el contenido cifrado cambia entre
+generaciones. Los cinco mensajes exactos se transcriben en
+[independencia del PC3](independencia_pc3.md). `prim_sim.v` compiló y no se
+alteraron bloques protegidos. El resultado del controlador de netlists es
+`PARTIAL`, código 2, con post-ruteo `PASS` y post-síntesis `UNAVAILABLE`.
+
+Las limitaciones anteriores sobre SDF, bancos individuales por subsistema,
+compatibilidad post-síntesis y montaje eléctrico del display siguen vigentes.
+No se declara la versión final completamente validada y no se programó la
+FPGA. La reorganización pasó RTL, post-ruteo y la implementación con parámetros
+reales; el bloqueo de cifrado preexistente permanece expresamente documentado.
+
+Las evidencias y comandos reproducibles se detallan en el informe de
+independencia. `work/` conserva los resultados de las corridas y queda fuera
+de Git, junto con netlists, bibliotecas, cachés y bitstreams. La revisión de
+`git status` y `git diff` para este avance se limita a fuentes locales nuevas,
+dos ampliaciones de pruebas, configuraciones y documentación. El mensaje
+autorizado es `refactor: hacer proyecto corto 3 independiente del PC2`;
+la publicación a `main` debe conservar el trabajo remoto y realizarse sin force.

@@ -6,8 +6,7 @@
 set build_dir [file dirname [file attributes [file normalize [info script]] -shortname]]
 set project_dir [file attributes [file join $build_dir ../..] -shortname]
 set output_dir [file join $project_dir work gowin_vending_top]
-set reusable_dir [file normalize [file join $project_dir .. \
-    EL-3307_Proyecto_Corto_2 src design]]
+set reusable_dir [file join $project_dir src design reused]
 set reusable_sources {synchronizer.sv debouncer.sv subtractor.sv \
     tick_generator.sv rom_reg.sv bcd_converter.sv disp_hex_mux.sv}
 
@@ -53,8 +52,7 @@ foreach source [lsort [glob ../../../src/design/*.sv]] {
     add_file -type verilog $source
 }
 foreach reusable $reusable_sources {
-    add_file -type verilog [file join ../../../../EL-3307_Proyecto_Corto_2 \
-        src design $reusable]
+    add_file -type verilog [file join $reusable_dir $reusable]
 }
 add_file -type cst ../../../src/constr/vending_top.cst
 add_file -type sdc ../../../src/constr/vending_top.sdc

@@ -55,7 +55,7 @@ RESTART se acepta después de una entrega y conserva existencias. S1 es independ
 
 change_reg alimenta vending_display. El registro de entrega habilita la presentación hasta RESTART; en reposo, reset y devolución se apagan todos los segmentos y dígitos. Se conservan ceros iniciales: 0050, 0025 y 0000 son ejemplos de vuelto.
 
-vending_display reutiliza bcd_converter, rom_reg, tick_generator y disp_hex_mux del Proyecto Corto 2. Separa millares y resto de 0 a 999; para restos desde 500 consulta la ROM con resto menos 500 y añade cinco a las centenas. Solo requiere direcciones 0 a 499 de una ROM de 512 entradas, conservando los datos originales y representando todo el rango de diez bits.
+vending_display utiliza las copias locales de bcd_converter, rom_reg, tick_generator y disp_hex_mux en src/design/reused. Su origen es el Proyecto Corto 2, pero no se consultan archivos de esa carpeta durante compilación o síntesis. Separa millares y resto de 0 a 999; para restos desde 500 consulta la ROM con resto menos 500 y añade cinco a las centenas. Solo requiere direcciones 0 a 499 de una ROM de 512 entradas, conservando los datos originales y representando todo el rango de diez bits.
 
 Con DISPLAY_DIV=6750 se genera un pulso de habilitación cada 6750 ciclos: 4000 posiciones de dígito por segundo y 1000 refrescos completos de cuatro dígitos. El multiplexor avanza con ese pulso y conserva el reloj de 27 MHz.
 

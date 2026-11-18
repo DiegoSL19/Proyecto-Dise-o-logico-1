@@ -65,9 +65,9 @@ DISPLAY_DIV=6750 da 4000 posiciones por segundo y 1000 cuadros completos por seg
 
 ## Reutilización y archivos de memoria
 
-Los módulos reutilizados del Proyecto Corto 2 son synchronizer, debouncer, subtractor, bcd_converter, rom_reg, tick_generator y disp_hex_mux. El modo predeterminado USE_TICK=0 del multiplexor conserva su avance original; el Proyecto Corto 3 habilita su modo de pulso.
+Los módulos synchronizer, debouncer, subtractor, bcd_converter, rom_reg, tick_generator y disp_hex_mux se copiaron sin cambios de lógica a src/design/reused, junto con bcdtable.txt. Su origen es el Proyecto Corto 2; el PC3 compila exclusivamente sus copias locales. El modo predeterminado USE_TICK=0 del multiplexor conserva su avance original; el Proyecto Corto 3 habilita su modo de pulso.
 
-La ROM bcdtable.txt es una dependencia de simulación y síntesis. La ruta relativa del conversor debe resolverse desde el directorio de trabajo configurado por los flujos. El wrapper no modifica los datos originales de la tabla.
+La tabla local src/design/reused/bcdtable.txt conserva las 1024 entradas originales. Los flujos de simulación y síntesis preparan su prefijo de 512 entradas en el directorio de ejecución esperado por ../design/bcdtable.txt. Así se conserva la interfaz de los módulos copiados y se evitan archivos externos y avisos por exceso de palabras. El wrapper no modifica los datos originales de la tabla.
 
 La conversión original produce tres dígitos y la entrada 1000 aislada no representa cuatro dígitos. vending_display evita esa limitación: resta 1000 para formar el resto y entrega el millar por separado. El rango completo de diez bits puede mostrarse sin cambiar la ROM.
 

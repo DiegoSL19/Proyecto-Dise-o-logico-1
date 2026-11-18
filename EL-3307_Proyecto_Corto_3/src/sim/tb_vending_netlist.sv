@@ -252,6 +252,9 @@ module tb_vending_netlist;
         cycles(SETTLE_CYCLES);
         buy(2'd0, 3'd2, 50, 3'b111);
 
+        restart();
+        buy(2'd0, 3'd7, 550, 3'b111);
+
         $display("RESULT: %0d tests, %0d errors", checks, errors);
         $display("NETLIST_ACTIONS: %0d deliveries, %0d refunds", deliveries, refunds);
         if (errors != 0)

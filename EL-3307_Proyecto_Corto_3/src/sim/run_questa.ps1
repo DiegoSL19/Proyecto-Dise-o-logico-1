@@ -12,8 +12,7 @@ $ErrorActionPreference = 'Stop'
 
 # All generated files, including the ROM's relative-path fixture, stay in work/.
 $project3 = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$repository = Split-Path -Parent $project3
-$project2 = Join-Path $repository 'EL-3307_Proyecto_Corto_2'
+$reused = Join-Path $project3 'src/design/reused'
 $runName = 'questa_{0}_{1}' -f (Get-Date -Format 'yyyyMMdd_HHmmss_fff'), ([guid]::NewGuid().ToString('N').Substring(0, 8))
 $runDirectory = Join-Path (Join-Path $project3 'work') $runName
 $utf8 = New-Object System.Text.UTF8Encoding($false)
@@ -91,17 +90,12 @@ try {
     }
 
     $sources = @(Get-ChildItem -LiteralPath (Join-Path $project3 'src/design') -Filter '*.sv' -File | Sort-Object Name | ForEach-Object { $_.FullName })
-    # Regress the complete original Project 2, including the mux's consumers.
-    $sources += @(Get-ChildItem -LiteralPath (Join-Path $project2 'src/design') -Filter '*.sv' -File | Sort-Object Name | ForEach-Object { $_.FullName })
+    # Each directory is read once; no modules from another project are added.
+    $sources += @(Get-ChildItem -LiteralPath $reused -Filter '*.sv' -File | Sort-Object Name | ForEach-Object { $_.FullName })
     $project3Tests = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter 'tb_*.sv' -File |
         Where-Object BaseName -ne 'tb_vending_netlist' | Sort-Object Name)
-    # This historical Project 2 bench needs its own generated netlist and SDF;
-    # running it against RTL would not constitute a post-route simulation.
-    $project2Tests = @(Get-ChildItem -LiteralPath (Join-Path $project2 'src/sim') -Filter 'tb_*.sv' -File |
-        Where-Object BaseName -ne 'tb_top_post_route' | Sort-Object Name)
     $sources += @($project3Tests | ForEach-Object { $_.FullName })
-    $sources += @($project2Tests | ForEach-Object { $_.FullName })
-    $availableTests = @($project3Tests | ForEach-Object { $_.BaseName }) + @($project2Tests | ForEach-Object { $_.BaseName })
+    $availableTests = @($project3Tests | ForEach-Object { $_.BaseName })
     $selectedTests = if ($Tests.Count) { $Tests } else { $availableTests }
     foreach ($test in $selectedTests) {
         if ($test -notin $availableTests) {
@@ -113,7 +107,7 @@ try {
             throw "Source file missing: $source"
         }
     }
-    $romSource = Join-Path $project2 'src/design/bcdtable.txt'
+    $romSource = Join-Path $reused 'bcdtable.txt'
     if (-not (Test-Path -LiteralPath $romSource -PathType Leaf)) {
         throw "BCD ROM missing: $romSource"
     }
@@ -134,7 +128,12 @@ try {
             throw 'Questa cannot use this Unicode workspace: an ASCII 8.3 path alias is unavailable.'
         }
     }
-    Copy-Item -LiteralPath $romSource -Destination (Join-Path $romDirectory 'bcdtable.txt')
+    # All PC3 ROM instances have nine address bits. Preserve the complete local
+    # source table and stage its first 512 entries, just as the Gowin flow does.
+    $romEntries = [System.IO.File]::ReadAllLines($romSource)
+    if ($romEntries.Count -ne 1024) { throw 'Expected 1024 entries in the local BCD table.' }
+    $romImage = Join-Path $romDirectory 'bcdtable.txt'
+    [System.IO.File]::WriteAllLines($romImage, [string[]]$romEntries[0..511], $utf8)
     [System.IO.File]::WriteAllLines((Join-Path $runDirectory 'sources.txt'), [string[]]$sources, $utf8)
     $metadata = [pscustomobject]@{
         WorkingDirectory = $runtimeDirectory
@@ -144,7 +143,8 @@ try {
         Sources = @($sources | ForEach-Object {
             [pscustomobject]@{ Path = $_; SHA256 = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
         })
-        Rom = [pscustomobject]@{ Path = $romSource; SHA256 = (Get-FileHash -LiteralPath $romSource -Algorithm SHA256).Hash }
+        Rom = [pscustomobject]@{ Path = $romSource; SHA256 = (Get-FileHash -LiteralPath $romSource -Algorithm SHA256).Hash;
+            Image = $romImage; InitializedEntries = 512; ImageSHA256 = (Get-FileHash -LiteralPath $romImage -Algorithm SHA256).Hash }
     }
     [System.IO.File]::WriteAllText((Join-Path $runDirectory 'metadata.json'), ($metadata | ConvertTo-Json -Depth 5), $utf8)
     Write-Host "Questa artifacts: $runDirectory"

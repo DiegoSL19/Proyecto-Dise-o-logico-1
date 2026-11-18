@@ -149,8 +149,8 @@ Desde la raiz del repositorio, en PowerShell:
 & 'C:\Gowin\Gowin_V1.9.11.03_Education_x64\IDE\bin\gw_sh.exe' 'EL-3307_Proyecto_Corto_3/src/build/vending_top_gowin.tcl'
 ```
 
-El Tcl agrega los archivos SystemVerilog de `PC3/src/design` y siete archivos
-del Proyecto Corto 2: `synchronizer.sv`, `debouncer.sv`, `subtractor.sv`,
+El Tcl agrega los archivos SystemVerilog de `src/design` y siete copias locales
+en `src/design/reused`: `synchronizer.sv`, `debouncer.sv`, `subtractor.sv`,
 `tick_generator.sv`, `rom_reg.sv`, `bcd_converter.sv` y `disp_hex_mux.sv`.
 Los testbenches no forman parte del proyecto de sintesis.
 Selecciona `GW1NR-LV9QN88PC6/I5`, version C, y `vending_top` como modulo superior.
@@ -164,7 +164,8 @@ explicitamente como SystemVerilog 2017. La frecuencia de GowinSynthesis se fija
 mediante `global_freq 27` y el SDC define el periodo usado en el analisis final.
 
 El conversor BCD conserva la ruta relativa original `../design/bcdtable.txt`.
-Antes de crear el proyecto, el Tcl prepara las primeras 512 entradas de PC2 en
+Antes de crear el proyecto, el Tcl lee `src/design/reused/bcdtable.txt` y
+prepara sus primeras 512 entradas en
 `work/gowin_vending_top/design/bcdtable.txt`, junto al directorio de ejecucion
 `work/gowin_vending_top/vending_top`. Este prefijo coincide dato por dato con
 el original. El adaptador consulta 0 a 499, resta 500 para el tramo superior y
@@ -179,18 +180,19 @@ la GUI, caches ni resultados generados para regenerarlo.
 
 ## Estado de verificacion
 
-Corridas del 17/11/2026 con el display integrado: 30 bancos RTL aprobados,
-53 190 comprobaciones y cero errores. Gowin V1.9.11.03 Education completo
+Corrida aislada del 18/11/2026 sin carpeta PC2: 14 bancos RTL aprobados,
+52 278 comprobaciones y cero errores. Gowin V1.9.11.03 Education completo
 sintesis, colocacion, ruteo y STA de `vending_top` con los parametros reales.
 Fmax: 53,526 MHz; peor margen de setup: +18,354 ns; hold: +0,561 ns.
 No hubo violaciones de setup ni hold. Se usaron 717 unidades logicas,
 396 registros, cero latches y los 28 puertos quedaron asignados.
 
-La variante con divisores reducidos paso 505 comprobaciones post-ruteo con
+La variante con divisores reducidos paso 565 comprobaciones post-ruteo con
 SDF real, pero la simulacion post-sintesis no pudo ejecutarse: Questa rechaza
 la proteccion GOWIN del `.vg`. El estado global es **incompleto**, no una
-version final validada. Consultar [la auditoria](auditoria_y_verificacion.md)
-para los artefactos, comandos, cobertura y limitaciones de cada fase.
+version final validada. Consultar [la independencia del PC3](independencia_pc3.md)
+y [la auditoria](auditoria_y_verificacion.md) para los artefactos, comandos,
+cobertura y limitaciones de cada fase.
 
 Archivos para abrir o revisar:
 

@@ -653,6 +653,12 @@ module tb_vending_top;
             short_start_n = 1'b1;
             cycles(SETTLE_CYCLES);
         end
+        // Pago maximo: el vuelto 550 utiliza la correccion de centenas de la ROM.
+        apply_reset(1'b0, 1'b0);
+        buy_product(2'b00, 3'd7, 10'd550);
+        check_display(16'h0550);
+        restart_purchase();
+
         $display("RESULT: %0d tests, %0d errors", checks, errors);
         $display("Actions: %0d requests, %0d deliveries, %0d refunds",
                  requests, deliveries, refunds);

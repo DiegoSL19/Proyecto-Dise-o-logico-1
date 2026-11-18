@@ -10,7 +10,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $project3 = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$repository = Split-Path -Parent $project3
+$reused = Join-Path $project3 'src/design/reused'
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 
 function ConvertTo-NativeArgument {
@@ -170,10 +170,10 @@ try {
     Write-Host "Netlist artifacts: $runDirectory"
 
     $designInputs = @(Get-ChildItem -LiteralPath (Join-Path $project3 'src/design') -Filter '*.sv' -File | Sort-Object Name | ForEach-Object { $_.FullName })
-    $designInputs += @('synchronizer','debouncer','subtractor','tick_generator','rom_reg','bcd_converter','disp_hex_mux' | ForEach-Object { Join-Path $repository "EL-3307_Proyecto_Corto_2/src/design/$_.sv" })
+    $designInputs += @(Get-ChildItem -LiteralPath $reused -Filter '*.sv' -File | Sort-Object Name | ForEach-Object { $_.FullName })
     $designInputs += @((Join-Path $project3 'src/constr/vending_top.cst'),
                       (Join-Path $project3 'src/constr/vending_top.sdc'),
-                      (Join-Path $repository 'EL-3307_Proyecto_Corto_2/src/design/bcdtable.txt'),
+                      (Join-Path $reused 'bcdtable.txt'),
                       (Join-Path $project3 'src/build/verify_netlist_gowin.tcl'))
     $hashes = @($designInputs | ForEach-Object { [pscustomobject]@{Path=$_; SHA256=(Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash} })
     $inputMetadata = Join-Path $runDirectory 'design_inputs.json'

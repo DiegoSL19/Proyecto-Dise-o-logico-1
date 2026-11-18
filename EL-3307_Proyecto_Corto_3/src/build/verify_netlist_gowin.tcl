@@ -8,9 +8,9 @@ if {[info exists env(VENDING_NETLIST_OUTPUT)]} {
 }
 file mkdir $output_dir
 set output_dir [file attributes [file normalize $output_dir] -shortname]
-set reusable_dir [file join $project_dir .. EL-3307_Proyecto_Corto_2 src design]
+set reusable_dir [file join $project_dir src design reused]
 
-# Mismos 512 datos usados por PC3; la tabla original de 1024 no se modifica.
+# Mismos 512 datos usados por PC3; la tabla local de 1024 no se modifica.
 file mkdir [file join $output_dir design]
 set rom_input [open [file join $reusable_dir bcdtable.txt] r]
 set rom_lines [split [string trim [read $rom_input]] "\n"]

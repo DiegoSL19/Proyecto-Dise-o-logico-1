@@ -2,6 +2,8 @@
 
 Este documento conserva el registro de pruebas unitarias originales del Proyecto Corto 2 y describe su uso en el Proyecto Corto 3. Una prueba aislada no demuestra que el sistema completo esté conectado o que sus salidas físicas sean correctas.
 
+Desde el 18/11/2026, el PC3 contiene sus propias copias en `src/design/reused`, incluida la tabla BCD. Los ocho archivos se copiaron sin cambios de las versiones de `e1ca2ac`. La [verificación de independencia](independencia_pc3.md) registra la compilación y síntesis sin carpeta PC2 y distingue esos resultados del historial siguiente.
+
 ## Registro histórico de pruebas unitarias
 
 Los siguientes resultados corresponden a las simulaciones originales registradas antes de integrar el display de la máquina expendedora:
