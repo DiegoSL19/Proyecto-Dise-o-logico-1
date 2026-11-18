@@ -1,0 +1,113 @@
+// Tang Nano 9K: GW1NR-LV9QN88PC6/I5, esquema 3672 revision 6202.
+// 28 pines distintos: 9 entradas y 19 salidas.
+// Referencias oficiales:
+// https://dl.sipeed.com/fileList/TANG/Nano%209K/2_Schematic/Tang_Nano_9k_3672_Schematic.pdf
+// https://wiki.sipeed.com/hardware/zh/tang/Tang-Nano-9K/assets/clip_image010.webp
+// Vista de componentes: USB-C arriba, HDMI abajo; J5 izquierda, J6 derecha.
+// Las posiciones J5/J6 son contactos del conector, no numeros del encapsulado.
+// J6.23 = GND, J6.24 = 3V3; J6.18 = 5V y no se conecta a estas entradas.
+
+// Reloj integrado de 27 MHz: banco de 3.3 V.
+IO_LOC  "clk" 52;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+// Botones integrados activos bajos, banco 3 a 1.8 V.
+// S1 (referencia de componente) = pin 4; S2 = pin 3.
+// Sus redes del esquema contienen S2/S1 invertidos; usar las referencias.
+// Ambos tienen pull-up fisico de 10 kohm a 1.8 V en la placa.
+IO_LOC  "reset_n" 4;
+IO_PORT "reset_n" IO_TYPE=LVCMOS18;
+
+IO_LOC  "restart_n" 3;
+IO_PORT "restart_n" IO_TYPE=LVCMOS18;
+
+// START externo: J5.10, banco 2 a 3.3 V; pulsador entre pin y GND.
+IO_LOC  "start_n" 30;
+IO_PORT "start_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+// DIP de producto: J5.5 y J5.6, banco 2 a 3.3 V.
+// Contacto abierto = 1; cerrado contra GND = 0, igual que coins_sw.
+IO_LOC  "product_sw[0]" 25;
+IO_PORT "product_sw[0]" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+IO_LOC  "product_sw[1]" 26;
+IO_PORT "product_sw[1]" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+// DIP de monedas: J5.7, J5.8 y J5.9, banco 2 a 3.3 V.
+IO_LOC  "coins_sw[0]" 27;
+IO_PORT "coins_sw[0]" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+IO_LOC  "coins_sw[1]" 28;
+IO_PORT "coins_sw[1]" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+IO_LOC  "coins_sw[2]" 29;
+IO_PORT "coins_sw[2]" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+// Entrega A/B/C: LED1/LED2/LED3 integrados, activos bajos a 1.8 V.
+IO_LOC  "delivery_led_n[0]" 10;
+IO_PORT "delivery_led_n[0]" IO_TYPE=LVCMOS18 DRIVE=8;
+
+IO_LOC  "delivery_led_n[1]" 11;
+IO_PORT "delivery_led_n[1]" IO_TYPE=LVCMOS18 DRIVE=8;
+
+IO_LOC  "delivery_led_n[2]" 13;
+IO_PORT "delivery_led_n[2]" IO_TYPE=LVCMOS18 DRIVE=8;
+
+// Agotado A/B/C: LED4/LED5/LED6 integrados, activos bajos a 1.8 V.
+IO_LOC  "empty_led_n[0]" 14;
+IO_PORT "empty_led_n[0]" IO_TYPE=LVCMOS18 DRIVE=8;
+
+IO_LOC  "empty_led_n[1]" 15;
+IO_PORT "empty_led_n[1]" IO_TYPE=LVCMOS18 DRIVE=8;
+
+IO_LOC  "empty_led_n[2]" 16;
+IO_PORT "empty_led_n[2]" IO_TYPE=LVCMOS18 DRIVE=8;
+
+// Devolucion: J5.11, banco 2 a 3.3 V, salida activa alta.
+// Pin 33 -> resistencia de 1 kohm -> anodo LED; catodo -> GND.
+// Comparte RGB_DE: dejar desconectada la pantalla RGB.
+IO_LOC  "refund_led" 33;
+IO_PORT "refund_led" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;
+
+// Display externo: habilitaciones activas altas en la configuracion inicial.
+// Usar etapas de seleccion de digito, no conducir su corriente comun por GPIO.
+// GPIO compartidos con RGB: J5.12, J5.13, J5.14 y J5.15.
+IO_LOC  "an[0]" 34;
+IO_PORT "an[0]" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;
+
+IO_LOC  "an[1]" 40;
+IO_PORT "an[1]" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;
+
+IO_LOC  "an[2]" 35;
+IO_PORT "an[2]" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;
+
+IO_LOC  "an[3]" 41;
+IO_PORT "an[3]" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;
+
+// Segmentos a,b,c,d,e,f,g = sseg[6:0]; punto decimal = sseg[7].
+// Salidas activas altas por defecto, con resistencias externas por segmento.
+// Las pantallas RGB y SPI deben permanecer desconectadas de sus FPC.
+// Se evitan 53-57 (configuracion), 59-62 (flash), 68-75 (HDMI) y JTAG.
+IO_LOC  "sseg[6]" 42;  // a: J5.16, RGB_B6
+IO_PORT "sseg[6]" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;
+
+IO_LOC  "sseg[5]" 51;  // b: J5.17, RGB_B5
+IO_PORT "sseg[5]" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;
+
+IO_LOC  "sseg[4]" 48;  // c: J6.19, SPI_LCD_CS
+IO_PORT "sseg[4]" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;
+
+IO_LOC  "sseg[3]" 49;  // d: J6.20, SPI_LCD_RS
+IO_PORT "sseg[3]" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;
+
+IO_LOC  "sseg[2]" 76;  // e: J6.11, SPI_LCD_CLK
+IO_PORT "sseg[2]" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;
+
+IO_LOC  "sseg[1]" 77;  // f: J6.10, SPI_LCD_MOSI
+IO_PORT "sseg[1]" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;
+
+IO_LOC  "sseg[0]" 31;  // g: J6.21, IOB15A / RGB_INIT
+IO_PORT "sseg[0]" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;
+
+IO_LOC  "sseg[7]" 32;  // dp: J6.22, IOB15B / RGB_INIT
+IO_PORT "sseg[7]" IO_TYPE=LVCMOS33 DRIVE=4 PULL_MODE=DOWN;

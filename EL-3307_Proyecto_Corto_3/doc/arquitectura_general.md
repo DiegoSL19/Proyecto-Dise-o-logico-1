@@ -1,124 +1,80 @@
-# Arquitectura general
+# Arquitectura de la máquina expendedora
 
-## Objetivo
+El Proyecto Corto 3 implementa una máquina expendedora de tres productos en la Tang Nano 9K. Una solicitud selecciona producto y cantidad de monedas; la máquina consulta existencias, calcula crédito menos precio y decide entre entregar o devolver. El vuelto de una entrega se muestra en decimal en cuatro dígitos de siete segmentos.
 
-Describir los requisitos de una máquina expendedora síncrona de tres productos para la FPGA Tang Nano 9K. El sistema recibe la selección de producto y el monto de monedas indicado, decide si puede realizar la compra, señala la entrega o devolución correspondiente y muestra el vuelto en cuatro displays de siete segmentos.
+## Plataforma y entradas
 
-La arquitectura debe separar claramente la **unidad de control**, implementada mediante una FSM principal, de la **ruta de datos** que registra inventarios y montos y realiza los cálculos de crédito, faltante y vuelto. Las operaciones de la ruta de datos no deben ejecutarse dentro de la FSM.
+Todo el diseño utiliza el oscilador de 27 MHz. Los temporizadores y el refresco usan contadores y habilitaciones, sin relojes derivados.
 
-## Plataforma
+| Entrada del top | Función |
+|---|---|
+| clk | Reloj de 27 MHz |
+| reset_n | Reset global mediante S1 |
+| restart_n | Reiniciar una transacción terminada, conservando inventario |
+| start_n | Confirmar producto y cantidad de monedas |
+| product_sw[1:0] | Producto A=00, B=01, C=10; código 11 inválido |
+| coins_sw[2:0] | Cantidad binaria de cero a siete monedas de 100 |
 
-- **Tarjeta:** Sipeed Tang Nano 9K.
-- **Reloj:** señal de reloj de 27 MHz de la tarjeta. Se permite un único reloj para todo el sistema.
-- **Temporización:** las bases de tiempo más lentas, incluidas las asociadas al barrido del teclado, al refresco de los displays y a temporizadores de 2 s de la FSM, deben obtenerse del reloj principal mediante divisores que generen pulsos de habilitación, no mediante relojes adicionales.
-- **Diseño síncrono:** las señales externas deben sincronizarse con el reloj interno y sus posibles rebotes deben eliminarse. Los subsistemas deben registrarse adecuadamente en entradas y salidas y el flujo de datos debe quedar explícito.
-- **Reset global:** el botón S1 de la Tang Nano 9K restablece los registros de inventario además del estado del sistema.
+Los contactos físicos son activos bajos: abiertos entregan uno eléctrico y cerrados a GND entregan cero. Después de sincronizar, el wrapper invierte esos niveles para que cerrado signifique uno lógico.
 
-El enunciado no especifica la asignación de pines ni la polaridad eléctrica de las entradas y salidas. Deben verificarse contra la tarjeta antes de la integración física.
+Los siete contactos de datos pasan por sincronización y filtros independientes de antirrebote. La guarda inicial permite llenar esos registros; una pulsación sostenida durante reset debe soltarse antes de habilitar un evento. Los cinco bits DIP deben estar estables antes de aceptar START.
 
-## Subsistemas
+Producto e importe se retienen conjuntamente antes de solicitar la transacción al core. El wrapper reserva transaction_busy y descarta nuevas pulsaciones mientras está ocupado o permanece visible una devolución.
 
-1. **Lectura de producto y monedas**
-   - Lee `PROD_SEL`, que selecciona A, B o C, e `IN_COINS`, que indica la cantidad de monedas ingresadas.
-   - `START` indica que se han seleccionado el producto y las monedas.
-   - `RESTART` devuelve el sistema a su estado inicial al terminar el proceso, sin borrar el inventario.
-   - Las entradas externas se sincronizan y se les elimina el rebote cuando corresponda.
+## Productos y ruta de datos
 
-2. **Control: FSM principal**
-   - Controla la secuencia de la máquina y genera las señales de control para los registros y operaciones de la ruta de datos.
-   - El enunciado exige codificación de estados One-Hot y solicita diagrama de estados, tabla de transiciones y ecuaciones de siguiente estado y de salida.
-   - Las operaciones aritméticas y las actualizaciones de registros pertenecen a la ruta de datos, no a la FSM.
-   - Según el enunciado, los comentarios del bloque de control en SystemVerilog deben escribirse en alemán.
-
-3. **Ruta de datos aritmética**
-   - Mantiene un registro de precio asociado al producto seleccionado, un registro de disponibilidad para cada producto y registros/lógica para el monto ingresado, el monto faltante y el vuelto.
-   - Actualiza estos datos sincrónicamente bajo señales de control de la FSM, tales como cargar el precio y el monto, calcular el vuelto y disminuir el inventario.
-   - El operador `+` puede acumular crédito y el operador `-` puede calcular faltantes o vueltos en complemento a dos. La condición de crédito suficiente debe determinarse a partir del signo de la resta, no mediante un operador de comparación.
-   - El ancho de los registros queda a criterio del grupo y debe justificarse en la bitácora.
-
-4. **Despliegue**
-   - Recibe el vuelto en código binario y lo muestra en decimal en cuatro displays de siete segmentos, reutilizando el sistema de refresco del proyecto anterior.
-   - La presentación del código de producto y del monto ingresado en los displays es un apartado extra, no un requisito base.
-
-### Productos e inventarios
-
-| Selección | Producto | Precio | Inventario inicial |
+| Producto | Código | Precio | Inventario inicial |
 |---|---|---:|---:|
-| A | Producto A | ₡150 | 3 unidades |
-| B | Producto B | ₡275 | 3 unidades |
-| C | Producto C | ₡400 | 3 unidades |
+| A | 00 | 150 | 3 |
+| B | 01 | 275 | 3 |
+| C | 10 | 400 | 3 |
 
-- El inventario de cada producto se restablece a 3 con el reset global S1.
-- El inventario de un producto disminuye con cada entrega de ese producto; `RESTART` no altera el inventario.
-- Al agotarse un producto, se enciende su LED particular de agotado.
-- Si se selecciona un producto agotado, el sistema regresa al reposo y enciende un LED que indica la devolución de todas las monedas ingresadas.
-- Si el crédito alcanza o supera el precio, se enciende el LED de entrega correspondiente y el display indica el monto de vuelto.
-- Después de la entrega, se debe presionar `RESTART` para iniciar de nuevo sin alterar el inventario.
-- Si el monto es insuficiente, el enunciado indica regresar al inicio y devolver todas las monedas. El escenario de prueba de pago insuficiente, sin embargo, también indica cancelar; la relación entre esa cancelación y la devolución se señala en «Ambigüedades y contradicciones».
+Los registros monetarios tienen diez bits. La interfaz física produce de 0 a 700 colones y el vuelto físico máximo es 550. El inventario usa dos bits por producto.
 
-### Temporizadores
+La ruta de datos conserva selección, crédito capturado, precio, crédito de operación y vuelto. El restador reutilizado entrega magnitud, signo y un pulso result_valid. La autorización utiliza el signo de crédito menos precio, junto con selección válida y disponibilidad.
 
-El enunciado requiere temporizadores de 2 s asociados a la FSM. También indica que el barrido del teclado y el refresco del display se deriven del reloj de 27 MHz usando pulsos de habilitación. No se especifica qué estados o acciones de la FSM deben durar 2 s ni cuántos temporizadores independientes se requieren.
+## Unidad de control
 
-### Requisitos de la FSM y documentación del diseño
+vending_fsm tiene nueve estados One-Hot, definidos mediante typedef enum. Un bloque always_ff registra el estado, otro always_comb calcula transiciones y otro always_comb genera habilitaciones.
 
-- La FSM principal debe usar codificación de estados **One-Hot**.
-- La descripción de cada FSM debe separar el registro de estado, la lógica combinacional de siguiente estado y la lógica combinacional de salidas. Se deben definir los estados con `typedef enum` y establecer explícitamente el estado de reset.
-- La lógica combinacional debe asignar sus salidas y señales en todos los caminos para prevenir la inferencia de latches.
-- Para la FSM principal se deben presentar el diagrama de estados, la tabla de transiciones y las ecuaciones de siguiente estado y de salidas.
-- Las señales de control que conectan la FSM con cada bloque de la ruta de datos deben identificarse claramente. Para cada FSM se deben presentar su diagrama de estados y las señales de control que maneja; no es necesario detallar la implementación interna de cada FSM adicional.
-- Los comentarios dentro del bloque de control SystemVerilog deben escribirse en alemán.
+La secuencia disponible es captura, revisión, carga de operandos, lanzamiento de resta, consumo del resultado, entrega y espera de RESTART. Las cargas, la resta y el consumo ocupan flancos distintos. La FSM no ejecuta operaciones de la ruta de datos.
 
-### Verificación y escenarios obligatorios
+Si el producto está agotado no se calcula ni se decrementa. Si el pago es insuficiente, el resultado negativo inicia devolución automática. Ambas rutas limpian datos temporales y regresan a reposo sin restaurar inventarios.
 
-Se deben presentar simulaciones de cada subsistema a nivel RTL (pre-síntesis) y con información de temporizado post-síntesis y post-colocación y ruteo. Las simulaciones se presentarán al asistente durante el horario de consulta. El testbench de la FSM principal debe cubrir, como mínimo, estos cuatro escenarios de la sección 4.5.3:
+RESTART se acepta después de una entrega y conserva existencias. S1 es independiente: restaura tres unidades de cada producto y reinicia control, datos y temporizadores.
 
-1. **Pago exacto:** producto A, pago descrito como ₡100 + ₡50; se entrega el producto y el vuelto es ₡0.
-2. **Sobrepago:** producto A, pago de ₡100 + ₡100; se entrega el producto y el vuelto es ₡50.
-3. **Pago insuficiente:** producto C, pago descrito como ₡100 + ₡25 y luego cancelación; se devuelven ₡125.
-4. **Producto agotado:** después de tres compras del producto A, el sistema indica que se agotó. Si se selecciona A de nuevo, inicia el proceso de devolución de todas las monedas y vuelve al estado inicial sin borrar el inventario.
+## Indicadores y display
 
-El enunciado recomienda parametrizar los divisores de frecuencia y usar valores reducidos en el testbench para que la simulación de los temporizadores sea práctica. Las denominaciones de los escenarios anteriores se transcriben tal como aparecen en el enunciado; la incompatibilidad con la entrada `IN_COINS` se conserva en «Ambigüedades y contradicciones».
+| Salida | Comportamiento |
+|---|---|
+| delivery_led_n[2:0] | Un LED activo bajo por entrega A/B/C; se mantiene hasta RESTART |
+| empty_led_n[2:0] | Un LED activo bajo por producto agotado; persiste hasta reset global |
+| refund_led | LED activo alto de devolución durante dos segundos |
+| an[3:0] | Selección multiplexada de los cuatro dígitos |
+| sseg[7:0] | Punto decimal en bit 7 y segmentos a, b, c, d, e, f, g en bits 6 a 0 |
 
-### Bitácora
+change_reg alimenta vending_display. El registro de entrega habilita la presentación hasta RESTART; en reposo, reset y devolución se apagan todos los segmentos y dígitos. Se conservan ceros iniciales: 0050, 0025 y 0000 son ejemplos de vuelto.
 
-Cada integrante debe llevar una bitácora individual y manual de avance, con mediciones, cálculos, diseños y simulaciones a su cargo. Las hojas deben estar numeradas y fechadas. El asistente revisará y firmará la bitácora al menos una vez por semana; el profesor o el asistente podrán utilizarla para evaluar el trabajo individual.
+vending_display reutiliza bcd_converter, rom_reg, tick_generator y disp_hex_mux del Proyecto Corto 2. Separa millares y resto de 0 a 999; para restos desde 500 consulta la ROM con resto menos 500 y añade cinco a las centenas. Solo requiere direcciones 0 a 499 de una ROM de 512 entradas, conservando los datos originales y representando todo el rango de diez bits.
 
-## Entradas
+Con DISPLAY_DIV=6750 se genera un pulso de habilitación cada 6750 ciclos: 4000 posiciones de dígito por segundo y 1000 refrescos completos de cuatro dígitos. El multiplexor avanza con ese pulso y conserva el reloj de 27 MHz.
 
-- `PROD_SEL`: selección entre los productos A, B y C mediante un DIP switch.
-- `IN_COINS`: cantidad de monedas de ₡100 indicada mediante un DIP switch, según la descripción de la interfaz del enunciado.
-- `START`: botón que confirma la selección del producto y el ingreso de monedas.
-- `RESTART`: botón que devuelve la máquina a su estado inicial tras completar el proceso, sin restablecer el inventario.
-- `S1`: botón de reset global de la Tang Nano 9K; restablece los registros de inventario.
-- **Reloj de 27 MHz:** reloj único del sistema.
+SEGMENTS_ACTIVE_LOW y DIGITS_ACTIVE_LOW adaptan la polaridad. Sus valores predeterminados son cero, siguiendo la interfaz de salida usada en el Proyecto Corto 2. Esto no identifica por sí solo el tipo eléctrico del display ni su circuito de manejo. Las conexiones y comprobaciones de pines se documentan en [preparacion_tangnano9k.md](preparacion_tangnano9k.md).
 
-El enunciado no especifica el ancho ni la codificación de los DIP switches, ni la polaridad o el acondicionamiento eléctrico de cada señal.
+## Decisiones y contradicciones del enunciado
 
-## Salidas
+La entrada descrita cuenta monedas de 100, mientras que los ejemplos de verificación incluyen pagos de 150 y 125 usando otras denominaciones. El top conserva la interfaz de cantidades; esos importes se inyectan directamente al core para verificar sus resultados numéricos.
 
-- **LEDs de entrega:** uno por producto; se enciende el correspondiente cuando se entrega ese producto.
-- **LEDs de agotado:** uno por producto; indica que su inventario llegó a cero.
-- **LED de devolución:** indica la devolución de todas las monedas ingresadas al seleccionar un producto agotado; el enunciado también requiere devolver todas las monedas cuando el pago es insuficiente.
-- **Cuatro displays de siete segmentos:** muestran en decimal el vuelto cuando el crédito alcanza o supera el precio.
+La sección aritmética exige devolver cuando hay faltante; otro ejemplo menciona cancelar sin definir una entrada. El sistema implementa devolución automática y no incorpora un pulsador adicional.
 
-El enunciado no especifica un actuador físico de despacho ni un mecanismo físico que devuelva monedas: describe la entrega mediante LEDs y la devolución mediante un LED indicador. Por tanto, este documento no presupone esos mecanismos.
+El enunciado menciona temporizadores de dos segundos sin asignar su uso exacto. La implementación usa ese intervalo para el LED de devolución; la entrega y el vuelto permanecen visibles hasta RESTART.
 
-## Ambigüedades y contradicciones
+La sección de entradas menciona un teclado en su título, pero describe dos DIP y dos pulsadores. La interfaz implementada sigue esa descripción funcional.
 
-1. **Monedas admitidas frente a casos de prueba:** la interfaz descrita define `IN_COINS` como cantidad de monedas de ₡100. Sin embargo, los casos de prueba exigen pagar ₡150 como ₡100 + ₡50, pagar ₡200 como ₡100 + ₡100 y probar un pago de ₡125 como ₡100 + ₡25. La interfaz descrita no permite representar las monedas de ₡50 ni de ₡25. El enunciado no indica si debe ampliarse la interfaz de entrada o cómo codificar esas denominaciones.
-2. **Insuficiencia frente a cancelación:** la sección aritmética dice que ante un faltante la máquina vuelve al inicio y devuelve todas las monedas. El caso de prueba para el producto C describe primero ₡125 y luego cancelar, con devolución de ₡125. No precisa si el pago insuficiente provoca devolución automática, si se espera una entrada de cancelación adicional o cómo se distingue una acción de otra.
-3. **Bloque de display:** se requiere mostrar el vuelto en cuatro displays, pero la sección del subsistema de despliegue también dice «No conecte este bloque». No aclara si esa instrucción significa excluir la conexión física, dejar el bloque desconectado en la integración o no usarlo en la implementación.
-4. **Temporizadores de 2 s:** se exige generarlos para la FSM, pero no se identifican las acciones temporizadas, sus condiciones de inicio o fin ni la cantidad de temporizadores.
-5. **Nombre del subsistema de entrada:** la sección se titula «lectura del teclado mecánico hexadecimal», aunque su descripción especifica DIP switches para `PROD_SEL` e `IN_COINS` y botones `START` y `RESTART`, no un teclado hexadecimal.
+## Documentación y verificación
 
-Estas ambigüedades se conservan explícitamente; no se asume una resolución que el enunciado no establece.
+El [diagrama de bloques](diagrama_bloques.md), el [diagrama de estados](diagrama_estados_fsm.md), las [transiciones](tabla_transiciones_fsm.md), las [salidas](tabla_salidas_control_fsm.md) y las [ecuaciones](ecuaciones_fsm.md) describen la arquitectura implementada.
 
-## Referencias teóricas
+La verificación debe distinguir bancos RTL, implementación con análisis estático, simulaciones con retardos y pruebas físicas. Un resultado de una etapa no sustituye a las demás ni se declara aprobado antes de ejecutarlo.
 
-- **Referencia principal:** Harris, S. L., & Harris, D. M. (2016). *Digital Design and Computer Architecture: ARM Edition*. Morgan Kaufmann.
-  - Apartados de consulta: sección 3.4, *Finite State Machines*; sección 3.5, *Timing of Sequential Logic*; sección 4.6, *Finite State Machines en HDL*; sección 4.9, *Testbenches*; sección 5.2, *Arithmetic Circuits*; sección 5.4, *Sequential Building Blocks*.
-- Chacón-Rodríguez, Alfonso. *Proyecto corto 3: Máquinas de estado finito en HDL*. EL-3307 Diseño Lógico, II Semestre 2026. Enunciado oficial incluido en [`Proyectos_Proyecto-Corto-3-II-Semestre-2026.pdf`](Proyectos_Proyecto-Corto-3-II-Semestre-2026.pdf).
-- Chu, Pong P. *FPGA Prototyping by SystemVerilog Examples: Xilinx MicroBlaze MCS SoC Edition*. Wiley, 2018.
-- Dally, William James y R. Curtis Harting. *Digital Design: A Systems Approach*. Cambridge University Press, 2012.
-- Sipeed. *Tang Nano 9K*, esquemático de la tarjeta incluido en [`Tang_Nano_9k_3672_Schematic.pdf`](Tang_Nano_9k_3672_Schematic.pdf).
+Referencias: enunciado del Proyecto Corto 3 incluido en este directorio; Harris y Harris, Digital Design and Computer Architecture; documentación oficial de la Tang Nano 9K y de Gowin citada en la preparación física.

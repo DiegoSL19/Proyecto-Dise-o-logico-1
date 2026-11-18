@@ -1,8 +1,10 @@
 module disp_hex_mux #(
-    parameter int unsigned N = 18
+    parameter int unsigned N = 18,
+    parameter bit USE_TICK = 1'b0
 ) (
     input  logic       clk,
     input  logic       reset,
+    input  logic       tick,
     input  logic [3:0] hex3,
     input  logic [3:0] hex2,
     input  logic [3:0] hex1,
@@ -18,11 +20,11 @@ module disp_hex_mux #(
     logic [3:0] hex_in;
     logic dp;
 
-    // Unico reloj: el contador no genera clocks derivados.
+    // Unico reloj; el modo original avanza en cada ciclo.
     always_ff @(posedge clk) begin
         if (reset)
             q_reg <= '0;
-        else
+        else if (!USE_TICK || tick)
             q_reg <= q_next;
     end
 

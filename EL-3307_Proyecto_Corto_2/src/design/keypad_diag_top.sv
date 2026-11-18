@@ -69,6 +69,7 @@ module keypad_diag_top (
     ) mux_display (
         .clk   (clk),
         .reset (reset_internal),
+        .tick  (1'b1),
         .hex3  (4'h0),
         .hex2  (4'h0),
         .hex1  (saved_row),

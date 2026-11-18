@@ -340,6 +340,60 @@ module tb_vending_fsm;
         end
     endtask
 
+    // La FSM recibe condiciones, no importes. Este modelo genera esas
+    // condiciones desde el caso numerico; tb_vending_system comprueba la aritmetica.
+    task automatic amount_scenario(
+        input logic [1:0] selection,
+        input logic [9:0] credit,
+        input logic [9:0] price,
+        input string label
+    );
+        begin
+            selected_available = 1'b1;
+            payment_sufficient = (credit >= price);
+            enter_capture(selection);
+            check_controls({label, ": carga de operandos"},
+                           1'b0, 1'b1, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0);
+            tick();
+            check_state({label, ": lanzar calculo"}, ST_LANZAR_CALCULO);
+            tick();
+            check_state({label, ": consumir resultado"}, ST_CALCULO_SALDO);
+            check_change_load({label, ": carga de vuelto solo con credito suficiente"},
+                              payment_sufficient);
+            tick();
+            if (payment_sufficient) begin
+                check_state({label, ": entrega autorizada"}, ST_ENTREGA);
+                check_controls({label, ": un decremento del producto"},
+                               1'b0, 1'b0, 1'b0,
+                               selection == 2'b00, selection == 2'b01,
+                               selection == 2'b10, 1'b0);
+                tick();
+                check_state({label, ": espera RESTART"}, ST_ESPERA_RESTART);
+                @(negedge clk);
+                restart_event = 1'b1;
+                tick();
+                restart_event = 1'b0;
+            end else begin
+                check_state({label, ": devolucion automatica sin CANCEL"}, ST_DEVOLUCION);
+                tests_run = tests_run + 1;
+                if (refund_active !== 1'b1) begin
+                    errors = errors + 1;
+                    $display("FAIL: %s: refund_active debe indicar devolucion", label);
+                end else begin
+                    $display("PASS: %s: refund_active indica devolucion", label);
+                end
+                check_controls({label, ": no entrega ni decrementa"},
+                               1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0);
+                tick();
+                check_state({label, ": limpia la transaccion"}, ST_RETORNO_REPOSO);
+                check_controls({label, ": limpieza sin inventario"},
+                               1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b1);
+                tick();
+            end
+            check_state({label, ": vuelve a reposo"}, ST_REPOSO);
+        end
+    endtask
+
     initial begin
         clk = 1'b0;
         reset = 1'b1;
@@ -498,6 +552,11 @@ module tb_vending_fsm;
         check_state("insufficient payment returns automatically to REPOSO",
                    ST_REPOSO);
 
+
+        // Los importes de 150 y 125 se inyectan en el modelo del core;
+        // no se agregan denominaciones ni un pulsador CANCEL a la interfaz fisica.
+        amount_scenario(2'b00, 10'd150, 10'd150, "PDF A con 150 exacto");
+        amount_scenario(2'b10, 10'd125, 10'd400, "PDF C con 125 insuficiente");
 
         $display("RESULT: %0d tests, %0d errors", tests_run, errors);
         if (errors != 0)

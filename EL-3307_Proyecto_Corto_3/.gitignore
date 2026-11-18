@@ -4,3 +4,10 @@
 *.log
 *.o
 *.history
+
+# Bibliotecas de simulacion, proyectos generados y resultados de implementacion.
+/work/
+/src/build/impl/
+*.wlf
+transcript
+modelsim.ini

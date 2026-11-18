@@ -24,6 +24,7 @@ module tb_disp_hex_mux;
     ) dut (
         .clk   (clk),
         .reset (reset),
+        .tick  (1'b1),
         .hex3  (hex3),
         .hex2  (hex2),
         .hex1  (hex1),

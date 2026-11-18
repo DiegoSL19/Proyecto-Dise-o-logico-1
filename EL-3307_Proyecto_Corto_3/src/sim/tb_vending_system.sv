@@ -705,6 +705,52 @@ complete_successful_purchase(
     2'b10, 10'd400, 10'd400, 10'd0,
     2'd2, 2'd3, 2'd3, 1'b0
 );
+
+        // Casos numericos del PDF, inyectados directamente en credit_in.
+        // Los DIP fisicos mantienen su significado de cantidad de monedas de 100.
+        restart_transaction(2'd2, 2'd3, 2'd2);
+        complete_successful_purchase(
+            2'b00, 10'd150, 10'd150, 10'd0,
+            2'd2, 2'd3, 2'd2, 1'b0
+        );
+        restart_transaction(2'd1, 2'd3, 2'd2);
+
+        begin_transaction(2'b10, 10'd125);
+        check_captured_credit("PDF C conserva el pago completo de 125", 10'd125);
+        step();
+        check_state("PDF C125 carga operandos antes de calcular", ST_LANZAR_CALCULO);
+        step();
+        check_state("PDF C125 espera el resultado registrado", ST_CALCULO_SALDO);
+        check_arithmetic("PDF C125 tiene faltante de 275, no vuelto",
+                         2'b10, 1'b1, 10'd400, 10'd125,
+                         10'd275, 1'b1, 1'b1, 1'b1, 1'b0);
+        check_change("PDF C125 no guarda faltante como vuelto", 10'd0);
+        step();
+        check_state("PDF C125 devuelve automaticamente sin CANCEL", ST_DEVOLUCION);
+        check_captured_credit("PDF C125 devuelve 125 completos, no 275", 10'd125);
+        tests_run = tests_run + 1;
+        if (refund_active !== 1'b1) begin
+            errors = errors + 1;
+            $display("FAIL: PDF C125 debe activar devolucion");
+        end else begin
+            $display("PASS: PDF C125 activa devolucion completa");
+        end
+        check_controls("PDF C125 no entrega ni decrementa",
+                       1'b0, 1'b0, 1'b0, 1'b0,
+                       1'b0, 1'b0, 1'b0, 1'b0);
+        check_inventory("PDF C125 conserva inventarios durante devolucion",
+                        2'd1, 2'd3, 2'd2, 1'b0, 1'b0, 1'b0);
+        step();
+        check_state("PDF C125 pasa a limpiar la transaccion", ST_RETORNO_REPOSO);
+        check_controls("PDF C125 limpia datos temporales",
+                       1'b0, 1'b0, 1'b0, 1'b0,
+                       1'b0, 1'b0, 1'b0, 1'b1);
+        step();
+        check_state("PDF C125 vuelve a reposo sin RESTART", ST_REPOSO);
+        check_captured_credit("PDF C125 limpia credito tras devolver", 10'd0);
+        check_inventory("PDF C125 conserva inventarios despues de devolver",
+                        2'd1, 2'd3, 2'd2, 1'b0, 1'b0, 1'b0);
+
         $display("RESULT: %0d tests, %0d errors", tests_run, errors);
         if (errors != 0)
             $fatal(1, "vending_system testbench failed");

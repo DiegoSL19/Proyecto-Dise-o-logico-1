@@ -1,66 +1,17 @@
-#Makefile con todo el flujo de trabajo para GOWIN. Utilizando Yosys, nextpnr, iverilog, gtkwave y openFPGALoader
+# Ejecutar desde este directorio. Ningun objetivo programa la FPGA.
+GOWIN_SH ?= C:/Gowin/Gowin_V1.9.11.03_Education_x64/IDE/bin/gw_sh.exe
 
-#FPGA a utilizar... Esto no se debe modificar para efectos del curso.
-BOARD  = tangnano9k
-FAMILY = GW1N-9C
-DEVICE = GW1NR-LV9QN88PC6/I5
+REUSED = synchronizer.sv debouncer.sv subtractor.sv tick_generator.sv rom_reg.sv bcd_converter.sv disp_hex_mux.sv
+SOURCES = $(wildcard ../design/*.sv) $(addprefix ../../../EL-3307_Proyecto_Corto_2/src/design/,$(REUSED))
+CONSTRAINTS = ../constr/vending_top.cst ../constr/vending_top.sdc
 
-#Nombre del proyecto... Acá ponen el nombre que deseen.
-PROYECT = 
+.PHONY: all gowin test
+all: gowin
 
-#Fuentes de diseno
-SOURCES := $(wildcard ../design/*.v ../design/*.sv) #Todas las fuentes .v o .sv que estan en design
-#Si quieren indicarlas una a una, pueden hacerlo como en este ejemplo:
-#SOURCES = ../design/module_top_deco_gray.v ../design/module_input_deco_gray.v 
+# El Tcl selecciona vending_top y realiza sintesis, PnR y STA a 27 MHz.
+gowin: $(SOURCES) $(CONSTRAINTS) vending_top_gowin.tcl
+	"$(GOWIN_SH)" vending_top_gowin.tcl
 
-#Fuente de simulacion
-#aca va el testbench que quieran simular
-TESTBENCH = ../sim/TB.sv
-
-# Constraints para el proyecto
-#aca va el archivo de constraints del proyecto
-CONSTRAINTS = ../constr/CONSTRAINTS.cst
-
-#el top se indica sin la extension .v, esto hace referencia al nombre que le pusieron al módulo y no al archivo en si.
-TOP_DESIGN = 
-TOP_TB     = 
-
-#nombre del vcd que va a generar el tb
-VCD_FILE = 
-
-
-all: synth pnr bitstream load
-
-# Synthesis
-synth: ${SOURCES}
-	@echo "Ejecutando la sintesis..."
-	@yosys -p "read_verilog -sv ${SOURCES}; synth_gowin -top ${TOP_DESIGN} -json ${PROYECT}.json" > synthesis_${BOARD}.log 2>&1 
-	@echo "COMPLETADO"
-
-# Place and Route
-pnr: ${PROYECT}.json
-	@echo "Ejecutando el pnr..."
-	@nextpnr-gowin --json ${PROYECT}.json --write ${PROYECT}_pnr.json --freq 27 --device ${DEVICE} --family ${FAMILY} --cst ${CONSTRAINTS} > pnr_${BOARD}.log 2>&1 
-	@echo "COMPLETADO"
-
-# Generar el Bitstream
-bitstream: ${PROYECT}_pnr.json
-	@echo "Generando ${PROYECT}_${BOARD}.fs"
-	@gowin_pack -d ${FAMILY} -o ${PROYECT}_${BOARD}.fs ${PROYECT}_pnr.json
-	@echo "COMPLETADO"
-		
-#Generar vcd con icarus verilog
-test: ${SOURCES} ${TESTBENCH}
-	@iverilog -o ${PROYECT}_test.o -s ${TOP_TB} -g2005-sv ${TESTBENCH} ${SOURCES}
-	@vvp ${PROYECT}_test.o 
-	
-#Visualizar los diagramas de tiempo con GTKWave
-wv: ${VCD_FILE}
-	gtkwave ${VCD_FILE} 
-        
-# Cargar el bitstream en la FPGA
-load: ${PROYECT}_${BOARD}.fs
-	openFPGALoader -b ${BOARD} ${PROYECT}_${BOARD}.fs 
-
-.PHONY: load  wv
-.INTERMEDIATE: ${PROYECT}_pnr.json ${PROYECT}.json
+# Ejecutar todos los bancos RTL de los Proyectos Cortos 2 y 3.
+test:
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -File ../sim/run_questa.ps1

@@ -58,6 +58,7 @@ module operand_register_diag_top (
     ) mux_display (
         .clk   (clk),
         .reset (reset_internal),
+        .tick  (1'b1),
         .hex3  (key_code),
         .hex2  ({2'b00, value[9:8]}),
         .hex1  (value[7:4]),

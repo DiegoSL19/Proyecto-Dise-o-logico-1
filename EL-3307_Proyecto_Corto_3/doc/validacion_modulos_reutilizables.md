@@ -1,83 +1,68 @@
-# Validación RTL de módulos reutilizables
+# Validación de módulos reutilizables
 
-## Alcance
+Este documento conserva el registro de pruebas unitarias originales del Proyecto Corto 2 y describe su uso en el Proyecto Corto 3. Una prueba aislada no demuestra que el sistema completo esté conectado o que sus salidas físicas sean correctas.
 
-Se registran los resultados de simulaciones RTL individuales ejecutadas con Icarus Verilog para seis módulos del Proyecto Corto 2, considerados como candidatos a reutilización en el Proyecto Corto 3. Las pruebas se realizaron con los testbenches unitarios indicados en cada sección.
+## Registro histórico de pruebas unitarias
 
-Estos resultados corresponden a los módulos originales del Proyecto Corto 2. Verifican los casos descritos a continuación de forma aislada y **no demuestran todavía el funcionamiento integrado de estos módulos en el Proyecto Corto 3**.
+Los siguientes resultados corresponden a las simulaciones originales registradas antes de integrar el display de la máquina expendedora:
 
-## Resultados resumidos
+| Módulo | Comprobaciones | Errores |
+|---|---:|---:|
+| synchronizer | 18 | 0 |
+| debouncer | 72 | 0 |
+| tick_generator | 42 | 0 |
+| subtractor | 17 | 0 |
+| bcd_converter | 12 | 0 |
+| disp_hex_mux | 143 | 0 |
+| Total histórico | 304 | 0 |
 
-| Módulo | Pruebas | Errores | Resultado |
-|---|---:|---:|---|
-| `synchronizer.sv` | 18 | 0 | PASS |
-| `debouncer.sv` | 72 | 0 | PASS |
-| `tick_generator.sv` | 42 | 0 | PASS |
-| `subtractor.sv` | 17 | 0 | PASS |
-| `bcd_converter.sv` | 12 | 0 | PASS |
-| `disp_hex_mux.sv` | 143 | 0 | PASS |
-| **Total** | **304** | **0** | **6 módulos PASS** |
+Este cuadro conserva su carácter histórico. La corrida nueva del 17/11/2026 volvió a aprobar los 16 bancos RTL de PC2, 967 comprobaciones y cero errores. La [auditoría](auditoria_y_verificacion.md) registra por separado las ejecuciones unitarias, de integración y de netlists, junto con sus limitaciones.
 
-## `synchronizer.sv`
+## Contratos y limitaciones
 
-- **Función:** sincronizar con `clk` una entrada asíncrona de cuatro bits mediante dos etapas de registros.
-- **Señales principales:** `clk`, `reset` (sincrónico y activo en alto), `async_in[3:0]` y `sync_out[3:0]`. Ambas etapas se inicializan a `4'b1111` mientras el reset está activo.
-- **Testbench:** `EL-3307_Proyecto_Corto_2/src/sim/tb_synchronizer.sv` (`tb_synchronizer`), con reloj de prueba de aproximadamente 27 MHz.
-- **Condiciones comprobadas:** valor inicial y reset; ausencia de cambio inmediato ante una entrada nueva; conservación del valor anterior en el primer flanco después del cambio; entrega del nuevo valor después del segundo flanco; respuesta al reset únicamente en el flanco positivo; y sincronización de una nueva entrada después de liberar el reset.
-- **Resultado:** 18 pruebas, 0 errores; **PASS**.
-- **Limitaciones:** se comprobaron unos pocos patrones de cuatro bits y secuencias dirigidas. La simulación RTL no modela ni mide la probabilidad de metastabilidad, no cubre todas las posibles entradas y temporizaciones asíncronas y no valida la integración con las señales de la placa o del Proyecto Corto 3.
+| Módulo | Contrato relevante | Verificación y límites |
+|---|---|---|
+| synchronizer | Dos etapas de cuatro bits, reset síncrono activo alto, reposo 1111 | Comprobar latencia y reset; RTL no modela metastabilidad física |
+| debouncer | Contador de estabilidad, reset síncrono activo bajo | Las pruebas originales usan N=4; hardware usa N=21 |
+| tick_generator | Pulsos de habilitación de un ciclo desde clk | Los divisores reducidos verifican período y ancho; no generan otro reloj |
+| subtractor | Operandos de diez bits; magnitud, signo y result_valid registrados | Interpretar signo/magnitud solo con validez nueva y conservar orden crédito menos precio |
+| bcd_converter | ROM combinacional, tres dígitos BCD | Resolver rom_reg y bcdtable.txt; se cubrieron doce entradas dirigidas |
+| disp_hex_mux | Selección de cuatro dígitos, segmentos y puntos decimales | La codificación interna es activa baja; comprobar orden, patrones y selección |
+| rom_reg | Lectura combinacional inicializada mediante readmemh | Su verificación original está incluida en bcd_converter; la memoria debe existir al simular y sintetizar |
 
-## `debouncer.sv`
+Las pruebas de subtractor cubrieron restas positivas, negativas e iguales, retención sin calculate y prioridad de reset. No sustituyen la verificación de cargas, validez y consumo de resultados del core.
 
-- **Función:** filtrar cambios breves de una entrada de botón y actualizar la salida cuando la entrada sincronizada se mantiene estable durante el intervalo definido por el contador parametrizado.
-- **Señales principales:** `clk`, `n_reset` (sincrónico y activo en bajo), `button_in` y `DB_out`; el módulo también recibe el parámetro `N`, que determina el contador de estabilidad.
-- **Testbench:** `EL-3307_Proyecto_Corto_2/src/sim/tb_debouncer.sv` (`tb_debouncer`), con reloj de prueba de aproximadamente 27 MHz y `N=4` (ocho ciclos de estabilidad en esta prueba, no el valor predeterminado del módulo).
-- **Condiciones comprobadas:** reset activo y liberado; secuencias alternadas de rebote de menos de dos ciclos por nivel sin cambios prematuros en la salida; pulsación y liberación estables; un solo cambio de salida para cada transición estable; y comportamiento del reset sincrónico, incluida la limpieza de la salida.
-- **Resultado:** 72 pruebas, 0 errores; **PASS**.
-- **Limitaciones:** el parámetro reducido acorta deliberadamente la simulación y no verifica el intervalo de estabilidad del valor predeterminado ni otros valores de `N`. Se probaron secuencias dirigidas, no perfiles de rebote de botones físicos ni todas las secuencias posibles. Tampoco se validaron temporización física ni integración en el Proyecto Corto 3.
+La ROM original convierte 0 a 999 en tres dígitos y produce 000 para su entrada 1000. vending_display conserva esa tabla y separa primero el millar. Para restos desde 500 resta 500 antes de consultar la ROM y añade cinco a las centenas. El conversor se instancia con N=9, M=12: direcciones usadas 0–499, profundidad 512. El rango completo 0–1023 y ambas polaridades del display pasaron 50 476 comprobaciones. rom_reg ahora delimita explícitamente la lectura al rango declarado; en las instancias originales de diez bits ese rango sigue siendo 0–1023.
 
-## `tick_generator.sv`
+El multiplexor conserva su modo original con USE_TICK=0. La integración utiliza USE_TICK=1 y N=2, avanzando únicamente con tick_display. Sus pruebas originales deben seguir pasando y las pruebas nuevas deben cubrir el modo habilitado.
 
-- **Función:** generar pulsos de habilitación de un ciclo para el barrido del teclado y la actualización del display a partir de un único reloj.
-- **Señales principales:** `clk`, `reset` (sincrónico y activo en alto), `tick_keypad` y `tick_display`. Los parámetros `KEYPAD_DIV` y `DISPLAY_DIV` establecen los periodos en ciclos de reloj.
-- **Testbench:** `EL-3307_Proyecto_Corto_2/src/sim/tb_tick_generator.sv` (`tb_tick_generator`), con reloj de prueba de aproximadamente 27 MHz y divisores reducidos `KEYPAD_DIV=4` y `DISPLAY_DIV=3`.
-- **Condiciones comprobadas:** salidas inactivas durante el reset inicial y durante un reset aplicado a mitad de cuenta; periodos de 4 y 3 ciclos; duración de un ciclo de cada pulso y ceros entre pulsos; coincidencias periódicas de ambos ticks; y reinicio de fase y periodos después de liberar el reset.
-- **Resultado:** 42 pruebas, 0 errores; **PASS**.
-- **Limitaciones:** los divisores reducidos permiten comprobar los contadores en una simulación corta, pero no verifican los divisores predeterminados ni la frecuencia real de operación en la placa. Tampoco se comprobó el comportamiento del sistema que consume los ticks ni su integración en el Proyecto Corto 3.
+## Integración que debe verificarse
 
-## `subtractor.sv`
+La ruta conectada es change_reg, vending_display, conversión BCD, multiplexor y salidas an/sseg. El registro de entrega habilita la presentación hasta RESTART. Reposo, reset y devolución producen blanco total.
 
-- **Función:** calcular la diferencia entre dos operandos sin signo y entregar por separado su magnitud y su signo.
-- **Entradas:** `clk`, `reset` (sincrónico y activo en alto), `calculate`, `operand_a[9:0]` y `operand_b[9:0]`.
-- **Salidas:** `magnitude[9:0]` es la magnitud no negativa de la diferencia; `negative` vale 1 cuando `operand_a < operand_b` y 0 cuando `operand_a >= operand_b`; `result_valid` indica que se solicitó un cálculo en el flanco actual. `magnitude` y `negative` son salidas registradas: se actualizan con `calculate` y se limpian con `reset`. Si `calculate` está bajo sin reset, conservan sus valores, mientras `result_valid` vuelve a 0.
-- **Testbench:** `EL-3307_Proyecto_Corto_2/src/sim/tb_subtractor.sv` (`tb_subtractor`), con reloj de prueba de aproximadamente 27 MHz.
-- **Operaciones y condiciones comprobadas:** restas con A mayor que B (`500-123`, `999-0`, `1-0`); A menor que B (`123-500`, `0-999`, `0-1`); operandos iguales (`123-123`); que la magnitud sea positiva independientemente del orden de los operandos; que `negative` distinga si el resultado matemático tiene signo negativo; que el resultado registrado se conserve al cambiar operandos sin volver a activar `calculate`; y que el reset tenga prioridad sobre `calculate` y limpie las salidas válidas.
-- **Resultado:** 17 pruebas, 0 errores; **PASS**.
-- **Limitaciones de reutilización:** la prueba ejercitó valores de hasta 999, pero no todas las combinaciones posibles del rango de 10 bits ni los límites superiores. Al reutilizarlo en el Proyecto Corto 3, se debe confirmar que los operandos y resultados caben en 10 bits, conectar A y B con el orden que corresponda a la operación deseada e interpretar `magnitude` junto con `negative` (la magnitud no tiene signo por sí sola). La FSM también debe coordinar `calculate` y `result_valid` con el registro del resultado. Esta prueba unitaria no valida esa adaptación ni la integración del módulo en el Proyecto Corto 3.
+La integración emplea DISPLAY_DIV=6750, equivalente a 4000 posiciones de dígito por segundo y 1000 cuadros completos a 27 MHz. La simulación puede reducir el divisor para observar varios barridos sin cambiar la estructura del reloj.
 
-## `bcd_converter.sv`
+Las comprobaciones deben observar las salidas públicas del display y cubrir:
 
-- **Función:** convertir un número binario de 10 bits (`input_bin`) a tres dígitos BCD empaquetados en `output_bcd[11:0]`, mediante una ROM.
-- **Dependencias:** `rom_reg.sv` y el archivo de tabla `EL-3307_Proyecto_Corto_2/src/design/bcdtable.txt`. La ROM se configura en el módulo con la ruta relativa `../design/bcdtable.txt`, que depende del directorio de trabajo de simulación.
-- **Testbench:** `EL-3307_Proyecto_Corto_2/src/sim/tb_bcd_converter.sv` (`tb_bcd_converter`); es una comprobación combinacional de los valores de entrada contra el BCD esperado.
-- **Condiciones comprobadas:** 12 valores dirigidos entre 0 y 1000, incluidos límites de dígito y ejemplos como 45, 123, 377, 500 y 999. Con la tabla actual, la entrada 1000 produce `12'h000` (BCD 000), no una representación de cuatro dígitos.
-- **Resultado:** 12 pruebas, 0 errores; **PASS**.
-- **Limitaciones de reutilización:** el resultado depende de que `rom_reg.sv` y `bcdtable.txt` estén disponibles y se resuelva correctamente la ruta relativa. La tabla entrega solo tres dígitos BCD y mapea 1000 a 000, por lo que no representa ese valor de forma decimal completa. La prueba cubre 12 entradas, no todas las entradas posibles de 10 bits, y no verifica integración en el Proyecto Corto 3.
+- A con 200: entrega y 0050.
+- B con 300: entrega y 0025.
+- C con 400: entrega y 0000.
+- C con 300: devolución de 300, sin decremento ni presentación de vuelto.
+- Producto agotado: devolución y conservación del inventario.
+- Cuatro posiciones, orden decimal, ceros iniciales y puntos apagados.
+- Valores de límite de dígito y rango completo del wrapper de diez bits.
+- Ambas polaridades configurables de segmentos y dígitos.
+- Blanco por reset, RESTART, reposo y devolución.
+- Retención del vuelto y del producto frente a cambios de DIP durante ocupación.
 
-## `disp_hex_mux.sv`
+## Casos numéricos del enunciado
 
-- **Función:** multiplexar cuatro dígitos hexadecimales para controlar cuatro displays de siete segmentos usando un contador síncrono como selector.
-- **Entradas:** `clk`, `reset` (sincrónico y activo en alto), `hex3[3:0]`, `hex2[3:0]`, `hex1[3:0]`, `hex0[3:0]` y `dp_in[3:0]`. El parámetro `N` determina el ancho del contador y debe ser al menos 2.
-- **Salidas:** `an[3:0]` habilita un display por vez con selección activa en bajo; `sseg[7:0]` contiene `dp` en el bit 7 y los segmentos `a` a `g` en los bits 6 a 0. Los patrones de segmentos son activos en bajo. Cada bit de `dp_in` controla directamente el punto decimal del dígito correspondiente; en esta interfaz, 0 lo enciende y 1 lo apaga.
-- **Testbench:** `EL-3307_Proyecto_Corto_2/src/sim/tb_disp_hex_mux.sv` (`tb_disp_hex_mux`), con reloj de aproximadamente 27 MHz y `N=4` para reducir el periodo de multiplexación durante la simulación.
-- **Condiciones comprobadas:** selección cíclica de `hex0`, `hex1`, `hex2` y `hex3` y retorno al primero; patrones activos en bajo para los valores hexadecimales 0–F; seguimiento de los cuatro puntos decimales; actualización de datos de entrada; reset sincrónico, incluida la selección de `hex0` al reiniciarse; y continuidad de la secuencia después del reset.
-- **Resultado:** 143 pruebas, 0 errores; **PASS**.
-- **Limitaciones de reutilización:** el testbench acelera el barrido con `N=4`; no mide la frecuencia de refresco requerida en la placa ni valida polaridades o conexiones físicas de displays. El enunciado del Proyecto Corto 3 contiene una contradicción: requiere mostrar el vuelto en cuatro displays y a la vez indica «No conecte este bloque». Por ello, este bloque debe permanecer desconectado en el Proyecto Corto 3 hasta que se aclare ese requisito. Esta simulación unitaria no demuestra integración en dicho proyecto.
+A con 150 y C con 125 se inyectan directamente en los bancos de FSM/core. La entrada física representa cantidades de monedas de 100 y no admite esos importes. El modelo de FSM transforma los valores en condiciones de suficiencia; el banco de vending_system comprueba la aritmética, la captura y los inventarios reales.
 
-## Referencia teórica
+Para C125, el faltante es 275 y el importe devuelto es 125. La devolución es automática según la sección aritmética; el diseño no incorpora una entrada CANCEL no definida por la interfaz.
 
-Harris y Harris, *Digital Design and Computer Architecture, ARM Edition*, secciones 3.5 y 4.9. Se citan como referencia teórica sobre diseño digital secuencial y descripción/verificación mediante HDL; no sustituyen los resultados experimentales indicados en este documento.
+## Evidencias y alcance
 
-## Límites de los resultados
+Una corrida RTL debe guardar el listado de fuentes, sus hashes y los resultados de cada banco. La implementación de Gowin debe reconstruirse con el display y sus dependencias para que el vuelto sea observable en las salidas.
 
-Los resultados reportados corresponden exclusivamente a simulaciones RTL individuales de los seis módulos originales y sus testbenches del Proyecto Corto 2. No constituyen validaciones de integración y no se reportan resultados de síntesis, pruebas físicas en la Tang Nano 9K ni simulaciones post-ruteo. La compatibilidad y el comportamiento integrado de estos módulos en el Proyecto Corto 3 quedan pendientes de verificación.
+Síntesis, colocación/ruteo y análisis estático no equivalen a simulaciones con retardos ni a una prueba de la tarjeta. El enunciado también solicita simulaciones post-síntesis y post-ruteo; su estado debe registrarse según las ejecuciones reales. No deben declararse aprobaciones nuevas antes de disponer de sus logs.

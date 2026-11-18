@@ -40,6 +40,7 @@ module calculator_display #(
     ) mux_display (
         .clk   (clk),
         .reset (reset),
+        .tick  (1'b1),
         .hex3  (4'h0),
         .hex2  (bcd_value[11:8]),
         .hex1  (bcd_value[7:4]),

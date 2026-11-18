@@ -62,7 +62,7 @@ module tb_keypad_decoder;
         check_key(2'd2, 2'd2, 1'b1, 4'h9, "R3 C3: 9");
         check_key(2'd2, 2'd3, 1'b1, 4'hC, "R3 C4: C");
 
-        check_key(2'd3, 2'd0, 1'b1, 4'h9, "R4 C1: * fisico introduce 9");
+        check_key(2'd3, 2'd0, 1'b1, 4'hE, "R4 C1: * corresponde al codigo hexadecimal E");
         check_key(2'd3, 2'd1, 1'b1, 4'h0, "R4 C2: 0");
         check_key(2'd3, 2'd2, 1'b1, 4'hF, "R4 C3: # usa F reservado");
         check_key(2'd3, 2'd3, 1'b1, 4'hD, "R4 C4: D");

@@ -10,7 +10,8 @@ module rom_reg #(
     logic [b-1:0] rom [0:(1<<w)-1];
 
     initial begin
-        $readmemh(fileName, rom);
+        // Leer solo las direcciones declaradas, incluso si la tabla es mas larga.
+        $readmemh(fileName, rom, 0, (1<<w)-1);
     end
 
     // Lectura combinacional: la direccion selecciona una entrada de la ROM.
